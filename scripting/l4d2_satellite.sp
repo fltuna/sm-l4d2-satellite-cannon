@@ -543,7 +543,7 @@ public Action onWeaponFired(Handle event, const char[] name, bool dontBroadcast)
     if(!checkSatelliteCanShoot(attacker, g_spSatellitePlayers[attacker]))
         return Plugin_Continue;
 
-
+    
 
     /* Emit sound */
     int soundNo = GetRandomInt(1, 9);
@@ -565,6 +565,7 @@ public Action onWeaponFired(Handle event, const char[] name, bool dontBroadcast)
     
     /* Ready to launch */
     CreateTimer(0.2, TraceTimer, attacker);
+    subtractSatelliteUses(attacker);
     
     /* Reload compulsorily */
     int wData = GetEntDataEnt2(attacker, g_hActiveWeapon);
@@ -715,15 +716,12 @@ public Action SatelliteTimer(Handle timer, any client)
     switch(g_spSatellitePlayers[client].currentAmmoType) {
         case AMMO_TYPE_BLIZZARD: {
             Blizzard(client);
-            subtractSatelliteUses(client);
         }
         case AMMO_TYPE_INFERNO: {
             castInferno(client);
-            subtractSatelliteUses(client);
         }
         case AMMO_TYPE_JUDGEMENT: {
             Judgement(client);
-            subtractSatelliteUses(client);
         }
     }
 
