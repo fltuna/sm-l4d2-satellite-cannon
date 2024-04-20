@@ -493,7 +493,7 @@ public Action onRoundStart(Handle event, const char[] name, bool dontBroadcast)
 public void ResetParameter()
 {
     for(int j = 0; j < MAXPLAYERS+1; j++)
-        g_spSatellitePlayers[j].isActionBlocked = true;
+        g_spSatellitePlayers[j].isActionBlocked = false;
 }
 
 /******************************************************
