@@ -738,12 +738,12 @@ public Action TraceTimer(Handle timer, any client)
 {
     /* Ring laser effect */
     CreateRingEffect(client, 150, 150, 230, 230, 2.0,
-                getSatelliteBurstDelayFromClient(client));
+                getClientSatelliteBurstDelay(client));
     
     /* Launch satellite cannon */
     raycount[client] = 0;
     
-    CreateTimer(getSatelliteBurstDelayFromClient(client),
+    CreateTimer(getClientSatelliteBurstDelay(client),
                 SatelliteTimer, client);
     
     return Plugin_Continue;
@@ -1298,11 +1298,11 @@ bool isSatelliteEnabled(int ammoType) {
 }
 
 
-float getSatelliteBurstDelayFromClient(int client) {
+stock float getClientSatelliteBurstDelay(int client) {
     return getSatelliteBurstDelay(g_spSatellitePlayers[client].currentAmmoType);
 }
 
-float getSatelliteBurstDelay(int ammoType) {
+stock float getSatelliteBurstDelay(int ammoType) {
     if(g_psPluginSettings.values.globalBurstDelay)
         return g_psPluginSettings.values.burstDelay;
     
@@ -1310,11 +1310,11 @@ float getSatelliteBurstDelay(int ammoType) {
 }
 
 
-float getSatellitePushForceFromClient(int client) {
+stock float getClientSatellitePushForce(int client) {
     return getSatellitePushForce(g_spSatellitePlayers[client].currentAmmoType);
 }
 
-float getSatellitePushForce(int ammoType) {
+stock float getSatellitePushForce(int ammoType) {
     if(g_psPluginSettings.values.globalPushForce)
         return g_psPluginSettings.values.pushForce;
     
@@ -1322,42 +1322,42 @@ float getSatellitePushForce(int ammoType) {
 }
 
 
-float getSatelliteRadiusFromClient(int client) {
+stock float getClientSatelliteRadius(int client) {
     return getSatelliteRadius(g_spSatellitePlayers[client].currentAmmoType);
 }
 
-float getSatelliteRadius(int ammoType) {
+stock float getSatelliteRadius(int ammoType) {
     return g_ssSatelliteSettings[ammoType].values.radius;
 }
 
 
-float getSatelliteDamageFromClient(int client) {
+stock float getClientSatelliteDamage(int client) {
     return getSatelliteDamage(g_spSatellitePlayers[client].currentAmmoType);
 }
 
-float getSatelliteDamage(int ammoType) {
+stock float getSatelliteDamage(int ammoType) {
     return g_ssSatelliteSettings[ammoType].values.damage;
 }
 
 
-float getSatelliteCooldownFromClient(int client) {
+stock float getClientSatelliteCooldown(int client) {
     return getSatelliteCooldown(g_spSatellitePlayers[client].currentAmmoType);
 }
 
-float getSatelliteCooldown(int ammoType) {
+stock float getSatelliteCooldown(int ammoType) {
     return g_ssSatelliteSettings[ammoType].values.cooldown;
 }
 
-int getSatelliteMaxUses(int ammoType) {
+stock int getSatelliteMaxUses(int ammoType) {
     return g_ssSatelliteSettings[ammoType].values.maxUses;
 }
 
 
-bool satelliteHasFriendlyFireFromClient(int client) {
+stock bool clientSatelliteHasFriendlyFire(int client) {
     return satelliteHasFriendlyFire(g_spSatellitePlayers[client].currentAmmoType);
 }
 
-bool satelliteHasFriendlyFire(int ammoType) {
+stock bool satelliteHasFriendlyFire(int ammoType) {
     if(g_psPluginSettings.values.globalFriendlyFire) 
         return g_psPluginSettings.values.friendlyFire;
     
