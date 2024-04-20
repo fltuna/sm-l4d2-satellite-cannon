@@ -1,1174 +1,1637 @@
 /******************************************************
-* 			L4D2: Satellite Cannon v1.6
-*					Author: ztar, SoltekGamerz
-* 			Web: http://ztar.blog7.fc2.com/
+*             L4D2: Satellite Cannon v2.0
+*                    Author: ztar, faketuna
+*             Web: http://ztar.blog7.fc2.com/
 *******************************************************/
+
+#pragma newdecls required
+#pragma semicolon 1
+
 #include <sourcemod>
 #include <sdktools>
 #include <sdkhooks>
-#define PLUGIN_VERSION "1.6"
 
-#define MODE_JUDGEMENT	1
-#define MODE_BLIZZARD	2
-#define MODE_INFERNO	3
-#define MODE_SLEEP		-1
+#define PLUGIN_VERSION "2.0"
 
-#define OFF				0
-#define ON				1
-#define NORMAL			0
-#define VARTICAL		1
-#define SURVIVOR		2
-#define INFECTED		3
-#define MOLOTOV 		0
-#define EXPLODE 		1
-
-/* Message */
-#define MESSAGE_EMPTY1	"ENERGY OUT"
-#define MESSAGE_EMPTY2	"ENERGY IS RUNNING OUT"
-#define MESSAGE_SHIFT1	"YOU HAVE SWITCHED TO MODE \nJUDGEMENT"
-#define MESSAGE_SHIFT2	"YOU HAVE SWITCHED TO MODE \nBLIZZARD"
-#define MESSAGE_SHIFT3	"YOU HAVE SWITCHED TO MODE \nINFERNO"
-#define MESSAGE_SHIFT4	"YOU HAVE SWITCHED TO MODE \nNORMAL"
+#define SURVIVOR        2
+#define INFECTED        3
 
 /* Sound */
-#define SOUND_NEGATIVE	"npc/soldier1/misc18.wav"
-#define SOUND_SHOOT01	"npc/soldier1/misc17.wav"
-#define SOUND_SHOOT02	"npc/soldier1/misc19.wav"
-#define SOUND_SHOOT03	"npc/soldier1/misc20.wav"
-#define SOUND_SHOOT04	"npc/soldier1/misc21.wav"
-#define SOUND_SHOOT05	"npc/soldier1/misc22.wav"
-#define SOUND_SHOOT06	"npc/soldier1/misc23.wav"
-#define SOUND_SHOOT07	"npc/soldier1/misc08.wav"
-#define SOUND_SHOOT08	"npc/soldier1/misc02.wav"
-#define SOUND_SHOOT09	"npc/soldier1/misc07.wav"
-#define SOUND_TRACING	"items/suitchargeok1.wav"
-#define SOUND_IMPACT01	"animation/van_inside_hit_wall.wav"
-#define SOUND_IMPACT02	"ambient/explosions/explode_3.wav"
-#define SOUND_IMPACT03	"ambient/atmosphere/firewerks_burst_01.wav"
-#define SOUND_FREEZE	"physics/glass/glass_pottery_break3.wav"
-#define SOUND_DEFROST	"physics/glass/glass_sheet_break1.wav"
+#define SOUND_NEGATIVE    "npc/soldier1/misc18.wav"
+#define SOUND_SHOOT01    "npc/soldier1/misc17.wav"
+#define SOUND_SHOOT02    "npc/soldier1/misc19.wav"
+#define SOUND_SHOOT03    "npc/soldier1/misc20.wav"
+#define SOUND_SHOOT04    "npc/soldier1/misc21.wav"
+#define SOUND_SHOOT05    "npc/soldier1/misc22.wav"
+#define SOUND_SHOOT06    "npc/soldier1/misc23.wav"
+#define SOUND_SHOOT07    "npc/soldier1/misc08.wav"
+#define SOUND_SHOOT08    "npc/soldier1/misc02.wav"
+#define SOUND_SHOOT09    "npc/soldier1/misc07.wav"
+#define SOUND_TRACING    "items/suitchargeok1.wav"
+#define SOUND_IMPACT01    "animation/van_inside_hit_wall.wav"
+#define SOUND_IMPACT02    "ambient/explosions/explode_3.wav"
+#define SOUND_IMPACT03    "ambient/atmosphere/firewerks_burst_01.wav"
+#define SOUND_FREEZE    "physics/glass/glass_pottery_break3.wav"
+#define SOUND_DEFROST    "physics/glass/glass_sheet_break1.wav"
 
 /* Model */
-#define ENTITY_GASCAN	"models/props_junk/gascan001a.mdl"
-#define ENTITY_PROPANE	"models/props_junk/propanecanister001a.mdl"
+#define ENTITY_GASCAN    "models/props_junk/gascan001a.mdl"
+#define ENTITY_PROPANE    "models/props_junk/propanecanister001a.mdl"
 
 /* Sprite */
-#define SPRITE_BEAM		"materials/sprites/laserbeam.vmt"
-#define SPRITE_HALO		"materials/sprites/halo01.vmt"
-#define SPRITE_GLOW		"materials/sprites/glow01.vmt"
+#define SPRITE_BEAM        "materials/sprites/laserbeam.vmt"
+#define SPRITE_HALO        "materials/sprites/halo01.vmt"
+#define SPRITE_GLOW        "materials/sprites/glow01.vmt"
 
 /* Particle */
-#define PARTICLE_FIRE01	"molotov_explosion"
-#define PARTICLE_FIRE02	"molotov_explosion_child_burst"
-#define PARTICLE_FIREBLUE01	"fire_pipe_blue"
-#define PARTICLE_FIREBLUE02	"flame_blue"
+#define PARTICLE_FIRE01    "molotov_explosion"
+#define PARTICLE_FIRE02    "molotov_explosion_child_burst"
+#define PARTICLE_FIREBLUE01    "fire_pipe_blue"
+#define PARTICLE_FIREBLUE02    "flame_blue"
 
-/* Cvars */
-new Handle:sm_satellite_enable			= INVALID_HANDLE;
-new Handle:sm_satellite_damage_01		= INVALID_HANDLE;
-new Handle:sm_satellite_freeze_02		= INVALID_HANDLE;
-new Handle:sm_satellite_damage_03		= INVALID_HANDLE;
-new Handle:sm_satellite_burst_delay		= INVALID_HANDLE;
-new Handle:sm_satellite_force			= INVALID_HANDLE;
-new Handle:sm_satellite_radius_01		= INVALID_HANDLE;
-new Handle:sm_satellite_radius_02		= INVALID_HANDLE;
-new Handle:sm_satellite_radius_03		= INVALID_HANDLE;
-new Handle:sm_satellite_limit_01		= INVALID_HANDLE;
-new Handle:sm_satellite_limit_02		= INVALID_HANDLE;
-new Handle:sm_satellite_limit_03		= INVALID_HANDLE;
-new Handle:sm_satellite_height			= INVALID_HANDLE;
-new Handle:sm_satellite_adminonly		= INVALID_HANDLE;
-new Handle:sm_satellite_mlimit_01		= INVALID_HANDLE;
-new Handle:sm_satellite_mlimit_02		= INVALID_HANDLE;
-new Handle:sm_satellite_mlimit_03		= INVALID_HANDLE;
 
-ConVar sm_satellite_friendly;
-bool nodamage;
+#define DUMMY_CVAR_NAME "sm_satellite_dummy_cvar_for_prevent_error_output"
+#define DUMMY_CVAR_DESCRIPTION "This convar is dummy"
 
-/* Grobal */
-new m_iClip1;
-new hActiveWeapon;
-new g_BeamSprite;
-new g_HaloSprite;
-new g_GlowSprite;
-new tEntity;
 
-new operation[MAXPLAYERS+1];
-new ticket[MAXPLAYERS+1];
-new raycount[MAXPLAYERS+1];
-new freeze[MAXPLAYERS+1];
-new energy[MAXPLAYERS+1][4];
-new Float:trsPos[MAXPLAYERS+1][3];
-new noprotect[MAXPLAYERS+1];
-new infiniteammo[MAXPLAYERS+1];
-new nofrezze[MAXPLAYERS+1];
-new Bulletblock[MAXPLAYERS+1];
-new Block1[MAXPLAYERS+1];
-new Block2[MAXPLAYERS+1];
-new Block3[MAXPLAYERS+1];
+// Satellite ammo type.
+#define SATELLITE_AMMO_TYPE_COUNT 5
+enum {
+    AMMO_TYPE_IDLE = 0,
+    AMMO_TYPE_ALL,
+    AMMO_TYPE_JUDGEMENT,
+    AMMO_TYPE_BLIZZARD,
+    AMMO_TYPE_INFERNO,
+}
 
-public Plugin:myinfo = 
+// Reset timings of usage limit 
+enum {
+    RT_ROUND_START = (1 << 0),
+    RT_MAP_START = (1 << 1),
+    RT_ON_DEATH = (1 << 2),
+}
+
+// Laser Effect type
+enum {
+    LASER_EFFECT_TYPE_NORMAL = 0,
+    LASER_EFFECT_TYPE_VERTICAL,
+}
+
+// Explosion Type
+enum {
+    EXPLOSION_TYPE_MOLOTOV = 0,
+    EXPLOSION_TYPE_EXPLODE,
+}
+
+
+enum struct SatelliteSettingsCvars {
+    ConVar enabled;
+    ConVar damage;
+    ConVar radius;
+    ConVar maxUses;
+    ConVar cooldown;
+    ConVar usageResetTiming;
+    ConVar burstDelay;
+    ConVar pushForce;
+    ConVar ammoAbillity1;
+    ConVar ammoAbillity2;
+    ConVar hasFriendlyFire;
+
+    void addChangeHook(ConVarChanged callback) {
+        this.enabled.AddChangeHook(callback);
+        this.damage.AddChangeHook(callback);
+        this.radius.AddChangeHook(callback);
+        this.maxUses.AddChangeHook(callback);
+        this.cooldown.AddChangeHook(callback);
+        this.usageResetTiming.AddChangeHook(callback);
+        this.burstDelay.AddChangeHook(callback);
+        this.pushForce.AddChangeHook(callback);
+        this.ammoAbillity1.AddChangeHook(callback);
+        this.ammoAbillity2.AddChangeHook(callback);
+        this.hasFriendlyFire.AddChangeHook(callback);
+    }
+}
+
+
+// Cached value are 10x faster than retrieve value from ConVar.
+// See: https://gist.github.com/faketuna/95080c8892c4a72c0f958f279572cfa4
+enum struct SatelliteSettingsValues {
+    bool enabled;
+    float damage;
+    float radius;
+    int maxUses;
+    float cooldown;
+    int usageResetTiming;
+    float burstDelay;
+    float pushForce;
+    float ammoAbillity1;
+    float ammoAbillity2;
+    bool hasFriendlyFire;
+
+    void setValues(
+        ConVar enabled,
+        ConVar damage,
+        ConVar radius,
+        ConVar maxUses,
+        ConVar cooldown,
+        ConVar usageRestTiming,
+        ConVar burstDelay,
+        ConVar pushForce,
+        ConVar ammoAbillity1,
+        ConVar ammoAbillity2,
+        ConVar hasFriendlyFire
+    ) {
+        this.enabled = enabled.BoolValue;
+        this.damage = damage.FloatValue;
+        this.radius = radius.FloatValue;
+        this.maxUses = maxUses.IntValue;
+        this.cooldown = cooldown.FloatValue;
+        this.usageResetTiming = usageRestTiming.IntValue;
+        this.burstDelay = burstDelay.FloatValue;
+        this.pushForce = pushForce.FloatValue;
+        this.ammoAbillity1 = ammoAbillity1.FloatValue;
+        this.ammoAbillity2 = ammoAbillity2.FloatValue;
+        this.hasFriendlyFire = hasFriendlyFire.BoolValue;
+    }
+}
+
+enum struct SatelliteSettings {
+    SatelliteSettingsCvars cvars;
+    SatelliteSettingsValues values;
+
+    void updateCache() {
+        this.values.setValues(
+            this.cvars.enabled,
+            this.cvars.damage,
+            this.cvars.radius,
+            this.cvars.maxUses,
+            this.cvars.cooldown,
+            this.cvars.usageResetTiming,
+            this.cvars.burstDelay,
+            this.cvars.pushForce,
+            this.cvars.ammoAbillity1,
+            this.cvars.ammoAbillity2,
+            this.cvars.hasFriendlyFire
+        );
+    }
+}
+
+// I think there is a better way, But I don't have math knowledge to solve this.
+int getResetTiming(int resetTiming) {
+    int toReturn;
+    switch(resetTiming) {
+        case 1: {
+            toReturn |= RT_ROUND_START;
+        }
+        case 2: {
+            toReturn |= RT_MAP_START;
+        }
+        case 4: {
+            toReturn |= RT_ON_DEATH;
+        }
+
+        case 3: {
+            toReturn |= RT_ROUND_START;
+            toReturn |= RT_MAP_START;
+        }
+        case 5: {
+            toReturn |= RT_ROUND_START;
+            toReturn |= RT_ON_DEATH;
+        }
+        case 6: {
+            toReturn |= RT_MAP_START;
+            toReturn |= RT_ON_DEATH;
+        }
+        case 7: {
+            toReturn |= RT_ROUND_START;
+            toReturn |= RT_MAP_START;
+            toReturn |= RT_ON_DEATH;
+        }
+
+        default: {
+            toReturn = 0;
+        }
+    }
+    
+    return toReturn;
+}
+
+enum struct PluginSettingsCVars {
+    ConVar enabled;
+    ConVar burstDelay;
+    ConVar globalBurstDelay;
+    ConVar pushForce;
+    ConVar globalPushForce;
+    ConVar friendlyFire;
+    ConVar globalFriendlyFire;
+    ConVar laserVisualHeight;
+    ConVar adminOnly;
+    ConVar adminFlags;
+    ConVar usageResetTiming;
+    ConVar globalUsageResetTiming;
+
+    void addChangeHook(ConVarChanged callback) {
+        this.enabled.AddChangeHook(callback);
+        this.burstDelay.AddChangeHook(callback);
+        this.globalBurstDelay.AddChangeHook(callback);
+        this.pushForce.AddChangeHook(callback);
+        this.globalPushForce.AddChangeHook(callback);
+        this.friendlyFire.AddChangeHook(callback);
+        this.globalFriendlyFire.AddChangeHook(callback);
+        this.laserVisualHeight.AddChangeHook(callback);
+        this.adminOnly.AddChangeHook(callback);
+        this.adminFlags.AddChangeHook(callback);
+        this.usageResetTiming.AddChangeHook(callback);
+        this.globalUsageResetTiming.AddChangeHook(callback);
+    }
+}
+
+enum struct PluginSettingsValues {
+    bool enabled;
+    float burstDelay;
+    bool globalBurstDelay;
+    float pushForce;
+    bool globalPushForce;
+    bool friendlyFire;
+    bool globalFriendlyFire;
+    int laserVisualHeight;
+    int adminOnly;
+    char adminFlags;
+    int usageResetTiming;
+    bool globalUsageResetTiming;
+
+    void setValues(
+        ConVar enabled,
+        ConVar burstDelay,
+        ConVar globalBurstDelay,
+        ConVar pushForce,
+        ConVar globalPushForce,
+        ConVar friendlyFire,
+        ConVar globalFriendlyFire,
+        ConVar laserVisualHeight,
+        ConVar adminOnly,
+        ConVar adminFlags,
+        ConVar usageResetTiming,
+        ConVar globalUsageResetTiming
+    ) {
+        this.enabled = enabled.BoolValue;
+        this.burstDelay = burstDelay.FloatValue;
+        this.globalBurstDelay = globalBurstDelay.BoolValue;
+        this.pushForce = pushForce.FloatValue;
+        this.globalPushForce = globalPushForce.BoolValue;
+        this.friendlyFire = friendlyFire.BoolValue;
+        this.globalFriendlyFire = globalFriendlyFire.BoolValue;
+        this.laserVisualHeight = laserVisualHeight.IntValue;
+        this.adminOnly = adminOnly.IntValue;
+        GetConVarString(adminFlags, this.adminFlags, sizeof(this.adminFlags));
+        this.usageResetTiming = getResetTiming(usageResetTiming.IntValue);
+        this.globalUsageResetTiming = globalUsageResetTiming.BoolValue;
+    }
+}
+
+enum struct PluginSettings {
+    PluginSettingsCVars cvars;
+    PluginSettingsValues values;
+
+    void updateCache() {
+        this.values.setValues(
+            this.cvars.enabled,
+            this.cvars.burstDelay,
+            this.cvars.globalBurstDelay,
+            this.cvars.pushForce,
+            this.cvars.globalPushForce,
+            this.cvars.friendlyFire,
+            this.cvars.globalFriendlyFire,
+            this.cvars.laserVisualHeight,
+            this.cvars.adminOnly,
+            this.cvars.adminFlags,
+            this.cvars.usageResetTiming,
+            this.cvars.globalUsageResetTiming
+        );
+    }
+}
+
+
+enum struct SatelliteAmmo {
+    int usesLeft;
+    bool isInfinityAmmo;
+
+    bool isAmmoEmpty() {
+        return this.usesLeft < 1 ? true : false;
+    }
+}
+
+enum struct SatellitePlayer {
+    int currentAmmoType;
+    int lastAmmoType;
+    bool isInCooldown;
+    bool isMoveBlocked;
+    bool isActionBlocked;
+    bool selfInjury;
+    float tracePosition[3];
+
+    SatelliteAmmo ammoJudgement;
+    SatelliteAmmo ammoBlizzard;
+    SatelliteAmmo ammoInferno;
+}
+
+
+
+
+SatellitePlayer g_spSatellitePlayers[MAXPLAYERS+1];
+SatelliteSettings g_ssSatelliteSettings[SATELLITE_AMMO_TYPE_COUNT];
+PluginSettings g_psPluginSettings;
+
+int g_hiClip1;
+int g_hActiveWeapon;
+int g_BeamSprite;
+int g_HaloSprite;
+int g_GlowSprite;
+int tEntity;
+
+int raycount[MAXPLAYERS+1];
+
+
+public Plugin myinfo = 
 {
-	name = "[L4D2] Satellite Cannon",
-	author = "ztar",
-	description = "Three kind of vertical laser launches by shooting magnum.",
-	version = PLUGIN_VERSION,
-	url = "http://ztar.blog7.fc2.com/"
+    name = "[L4D2] Satellite Cannon",
+    author = "ztar",
+    description = "Vertical laser launches by shooting magnum.",
+    version = PLUGIN_VERSION,
+    url = "http://ztar.blog7.fc2.com/"
+}
+
+public void OnPluginStart() {
+
+    // INITIALIZE PROPERY
+    PluginSettingsCVars settingsCVars;
+    PluginSettingsValues settingsValues;
+    g_psPluginSettings.cvars = settingsCVars;
+    g_psPluginSettings.values = settingsValues;
+
+    g_psPluginSettings.cvars.enabled =              CreateConVar("sm_satellite_enable",                 "1",        "0:OFF 1:ON", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+    g_psPluginSettings.cvars.laserVisualHeight =    CreateConVar("sm_satellite_laser_visual_height",    "650",      "Height of launching point visual laser.", FCVAR_NOTIFY);
+    g_psPluginSettings.cvars.burstDelay =           CreateConVar("sm_satellite_burst_delay",            "1.0",      "Launching delay of Satellite cannon. This value is only be used when sm_satellite_burst_delay_global is 1", FCVAR_NOTIFY);
+    g_psPluginSettings.cvars.globalBurstDelay =     CreateConVar("sm_satellite_burst_delay_global",     "1.0",      "Toggle global burst delay. When set to 0 it uses individual burst delay based on satellite ammo settings.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+    g_psPluginSettings.cvars.pushForce =            CreateConVar("sm_satellite_push_force",             "600.0",    "Push force of Satellite cannon. This value is only be used when sm_satellite_push_force_global is 1", FCVAR_NOTIFY);
+    g_psPluginSettings.cvars.globalPushForce =      CreateConVar("sm_satellite_push_force_global",      "1.0",      "Toggle global push force. When set to 0 it uses individual push force based on satellite ammo settings.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+    g_psPluginSettings.cvars.friendlyFire =         CreateConVar("sm_satellite_friendly_fire",      "1.0",      "Toggle friendly fire. This value is only be used when sm_satellite_friendly_fire_global is 1", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+    g_psPluginSettings.cvars.globalFriendlyFire =   CreateConVar("sm_satellite_friendly_fire_global",      "1.0",      "Toggle global friendly fire. When set to 0 it uses individual push force based on satellite ammo settings.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+    
+    // TODO Implement admin only feature
+    //g_psPluginSettings.cvars.adminFlags =           CreateConVar("sm_satellite_admin_flags",            "z",        "SourceMod admin flag", FCVAR_NOTIFY);
+    //g_psPluginSettings.cvars.adminOnly =            CreateConVar("sm_satellite_admin_only",             "1.0",      "Toggle sattelite cannon admin only.", FCVAR_NOTIFY, true, 0.0, true, 2.0);
+    g_psPluginSettings.cvars.adminFlags =           CreateConVar(DUMMY_CVAR_NAME,              "0",    DUMMY_CVAR_DESCRIPTION, FCVAR_DONTRECORD);
+    g_psPluginSettings.cvars.adminOnly =            CreateConVar(DUMMY_CVAR_NAME,              "0",    DUMMY_CVAR_DESCRIPTION, FCVAR_DONTRECORD);
+    g_psPluginSettings.cvars.usageResetTiming =     CreateConVar("sm_satellite_usage_reset_timing",             "1",      "When ammo will reset. | 1: Round start, 2: Map start, 4: Death | If you want to use multiple timings you can set the combined number. For example Round start and death is 5.", FCVAR_NOTIFY);
+    g_psPluginSettings.cvars.globalUsageResetTiming =   CreateConVar("sm_satellite_usage_reset_timing_global",      "1",      "Toggle global usage reset timing. When set to 0 it uses individual usage reset timing based on satellite ammo settings.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+    g_psPluginSettings.cvars.addChangeHook(OnPluginSettingsUpdated);
+    g_psPluginSettings.updateCache();
+
+    SatelliteSettingsCvars blizzardCvars;
+    SatelliteSettingsValues blizzardValues;
+    g_ssSatelliteSettings[AMMO_TYPE_BLIZZARD].cvars = blizzardCvars;
+    g_ssSatelliteSettings[AMMO_TYPE_BLIZZARD].values = blizzardValues;
+
+    g_ssSatelliteSettings[AMMO_TYPE_BLIZZARD].cvars.enabled =           CreateConVar("sm_satellite_ammo_blizzard_enable",            "1",        "0:OFF 1:ON", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+    g_ssSatelliteSettings[AMMO_TYPE_BLIZZARD].cvars.damage =            CreateConVar(DUMMY_CVAR_NAME,              "0",    DUMMY_CVAR_DESCRIPTION, FCVAR_DONTRECORD);
+    g_ssSatelliteSettings[AMMO_TYPE_BLIZZARD].cvars.radius =            CreateConVar("sm_satellite_ammo_blizzard_radius",            "200.0",    "Radius of this cannon.", FCVAR_NOTIFY);
+    g_ssSatelliteSettings[AMMO_TYPE_BLIZZARD].cvars.maxUses =           CreateConVar("sm_satellite_ammo_blizzard_limit",             "5",        "Limit of uses. reset timing is depends on usage_reset_timing cvar", FCVAR_NOTIFY);
+    g_ssSatelliteSettings[AMMO_TYPE_BLIZZARD].cvars.cooldown =          CreateConVar("sm_satellite_ammo_blizzard_cooldown",          "0.0",      "Cooldown per shot. 0 means you can use immediately when your guns reloaded.", FCVAR_NOTIFY);
+    g_ssSatelliteSettings[AMMO_TYPE_BLIZZARD].cvars.usageResetTiming =  CreateConVar("sm_satellite_ammo_blizzard_usage_reset_timing","1",        "When ammo will reset. | 1: Round start, 2: Map start, 4: Death | If you want to use multiple timings you can set the combined number. For example Round start and death is 5.", FCVAR_NOTIFY);
+    g_ssSatelliteSettings[AMMO_TYPE_BLIZZARD].cvars.burstDelay =        CreateConVar("sm_satellite_ammo_blizzard_burst_delay",       "1.0",      "Launching delay of this cannon. this value will only used when sm_satellite_burst_delay_global is 0", FCVAR_NOTIFY);
+    g_ssSatelliteSettings[AMMO_TYPE_BLIZZARD].cvars.pushForce =         CreateConVar(DUMMY_CVAR_NAME,              "0",    DUMMY_CVAR_DESCRIPTION, FCVAR_DONTRECORD);
+    g_ssSatelliteSettings[AMMO_TYPE_BLIZZARD].cvars.ammoAbillity1 =     CreateConVar("sm_satellite_ammo_blizzard_time",              "5.0",    "Freeze time.", FCVAR_NOTIFY);
+    g_ssSatelliteSettings[AMMO_TYPE_BLIZZARD].cvars.ammoAbillity2 =     CreateConVar(DUMMY_CVAR_NAME,              "0",    DUMMY_CVAR_DESCRIPTION, FCVAR_DONTRECORD);
+    g_ssSatelliteSettings[AMMO_TYPE_BLIZZARD].cvars.hasFriendlyFire =   CreateConVar("sm_satellite_ammo_blizzard_friendly_fire",            "1",        "0:OFF 1:ON. This value is only be used when sm_satellite_friendly_fire_global is 0", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+    g_ssSatelliteSettings[AMMO_TYPE_BLIZZARD].cvars.addChangeHook(OnPluginSettingsUpdated);
+    g_ssSatelliteSettings[AMMO_TYPE_BLIZZARD].updateCache();
+
+    SatelliteSettingsCvars infernoCvars;
+    SatelliteSettingsValues infernoValues;
+    g_ssSatelliteSettings[AMMO_TYPE_INFERNO].cvars = infernoCvars;
+    g_ssSatelliteSettings[AMMO_TYPE_INFERNO].values = infernoValues;
+
+    g_ssSatelliteSettings[AMMO_TYPE_INFERNO].cvars.enabled =           CreateConVar("sm_satellite_ammo_inferno_enable",            "1",        "0:OFF 1:ON", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+    g_ssSatelliteSettings[AMMO_TYPE_INFERNO].cvars.damage =            CreateConVar("sm_satellite_ammo_inferno_damage",            "420.0",    "Damage of this cannon.", FCVAR_NOTIFY);
+    g_ssSatelliteSettings[AMMO_TYPE_INFERNO].cvars.radius =            CreateConVar("sm_satellite_ammo_inferno_radius",            "200.0",    "Radius of this cannon.", FCVAR_NOTIFY);
+    g_ssSatelliteSettings[AMMO_TYPE_INFERNO].cvars.maxUses =           CreateConVar("sm_satellite_ammo_inferno_limit",             "5",        "Limit of uses. reset timing is depends on usage_reset_timing cvar", FCVAR_NOTIFY);
+    g_ssSatelliteSettings[AMMO_TYPE_INFERNO].cvars.cooldown =          CreateConVar("sm_satellite_ammo_inferno_cooldown",          "0.0",      "Cooldown per shot. 0 means you can use immediately when your guns reloaded.", FCVAR_NOTIFY);
+    g_ssSatelliteSettings[AMMO_TYPE_INFERNO].cvars.usageResetTiming =  CreateConVar("sm_satellite_ammo_inferno_usage_reset_timing","1",        "When ammo will reset. | 1: Round start, 2: Map start, 4: Death | If you want to use multiple timings you can set the combined number. For example Round start and death is 5.", FCVAR_NOTIFY);
+    g_ssSatelliteSettings[AMMO_TYPE_INFERNO].cvars.burstDelay =        CreateConVar("sm_satellite_ammo_inferno_burst_delay",       "1.0",      "Launching delay of this cannon. this value will only used when sm_satellite_burst_delay_global is 0", FCVAR_NOTIFY);
+    g_ssSatelliteSettings[AMMO_TYPE_INFERNO].cvars.pushForce =         CreateConVar("sm_satellite_ammo_inferno_push_force",        "600.0",    "Push force of this cannon. this value will only used when sm_satellite_push_force_global is 0");
+    g_ssSatelliteSettings[AMMO_TYPE_INFERNO].cvars.ammoAbillity1 =     CreateConVar(DUMMY_CVAR_NAME,              "0",    DUMMY_CVAR_DESCRIPTION, FCVAR_DONTRECORD);
+    g_ssSatelliteSettings[AMMO_TYPE_INFERNO].cvars.ammoAbillity2 =     CreateConVar(DUMMY_CVAR_NAME,              "0",    DUMMY_CVAR_DESCRIPTION, FCVAR_DONTRECORD);
+    g_ssSatelliteSettings[AMMO_TYPE_INFERNO].cvars.hasFriendlyFire =   CreateConVar("sm_satellite_ammo_inferno_friendly_fire",            "1",        "0:OFF 1:ON. This value is only be used when sm_satellite_friendly_fire_global is 0", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+    g_ssSatelliteSettings[AMMO_TYPE_INFERNO].cvars.addChangeHook(OnPluginSettingsUpdated);
+    g_ssSatelliteSettings[AMMO_TYPE_INFERNO].updateCache();
+
+
+    SatelliteSettingsCvars judgementCvars;
+    SatelliteSettingsValues judgementValues;
+    g_ssSatelliteSettings[AMMO_TYPE_JUDGEMENT].cvars = judgementCvars;
+    g_ssSatelliteSettings[AMMO_TYPE_JUDGEMENT].values = judgementValues;
+
+    g_ssSatelliteSettings[AMMO_TYPE_JUDGEMENT].cvars.enabled =           CreateConVar("sm_satellite_ammo_judgement_enable",            "1",        "0:OFF 1:ON", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+    g_ssSatelliteSettings[AMMO_TYPE_JUDGEMENT].cvars.damage =            CreateConVar("sm_satellite_ammo_judgement_damage",            "300.0",    "Damage of this cannon.", FCVAR_NOTIFY);
+    g_ssSatelliteSettings[AMMO_TYPE_JUDGEMENT].cvars.radius =            CreateConVar("sm_satellite_ammo_judgement_radius",            "200.0",    "Radius of this cannon.", FCVAR_NOTIFY);
+    g_ssSatelliteSettings[AMMO_TYPE_JUDGEMENT].cvars.maxUses =           CreateConVar("sm_satellite_ammo_judgement_limit",             "5",        "Limit of uses. reset timing is depends on usage_reset_timing cvar", FCVAR_NOTIFY);
+    g_ssSatelliteSettings[AMMO_TYPE_JUDGEMENT].cvars.cooldown =          CreateConVar("sm_satellite_ammo_judgement_cooldown",          "0.0",      "Cooldown per shot. 0 means you can use immediately when your guns reloaded.", FCVAR_NOTIFY);
+    g_ssSatelliteSettings[AMMO_TYPE_JUDGEMENT].cvars.usageResetTiming =  CreateConVar("sm_satellite_ammo_judgement_usage_reset_timing","1",        "When ammo will reset. | 1: Round start, 2: Map start, 4: Death | If you want to use multiple timings you can set the combined number. For example Round start and death is 5.", FCVAR_NOTIFY);
+    g_ssSatelliteSettings[AMMO_TYPE_JUDGEMENT].cvars.burstDelay =        CreateConVar("sm_satellite_ammo_judgement_burst_delay",       "1.0",      "Launching delay of this cannon. this value will only used when sm_satellite_burst_delay_global is 0", FCVAR_NOTIFY);
+    g_ssSatelliteSettings[AMMO_TYPE_JUDGEMENT].cvars.pushForce =         CreateConVar("sm_satellite_ammo_judgement_push_force",        "600.0",    "Push force of this cannon. this value will only used when sm_satellite_push_force_global is 0");
+    g_ssSatelliteSettings[AMMO_TYPE_JUDGEMENT].cvars.ammoAbillity1 =     CreateConVar(DUMMY_CVAR_NAME,              "0",    DUMMY_CVAR_DESCRIPTION, FCVAR_DONTRECORD);
+    g_ssSatelliteSettings[AMMO_TYPE_JUDGEMENT].cvars.ammoAbillity2 =     CreateConVar(DUMMY_CVAR_NAME,              "0",    DUMMY_CVAR_DESCRIPTION, FCVAR_DONTRECORD);
+    g_ssSatelliteSettings[AMMO_TYPE_JUDGEMENT].cvars.hasFriendlyFire =   CreateConVar("sm_satellite_ammo_judgement_friendly_fire",            "1",        "0:OFF 1:ON. This value is only be used when sm_satellite_friendly_fire_global is 0", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+    g_ssSatelliteSettings[AMMO_TYPE_JUDGEMENT].cvars.addChangeHook(OnPluginSettingsUpdated);
+    g_ssSatelliteSettings[AMMO_TYPE_JUDGEMENT].updateCache();
+
+    LoadTranslations("l4d2_satellite.phrases");
+
+    HookEvent("weapon_fire", onWeaponFired);
+    HookEvent("item_pickup", onItemPickUp);
+    HookEvent("round_start", onRoundStart);
+    HookEvent("player_death", onPlayerDeath);
+    g_hActiveWeapon = FindSendPropInfo("CTerrorPlayer", "m_hActiveWeapon");
+    g_hiClip1 = FindSendPropInfo("CBaseCombatWeapon", "m_iClip1");
+
+    initPlayersAmmo();
+    for(int i = 1; i <= MaxClients; i++) {
+        if(!IsClientConnected(i) || !IsClientInGame(i))
+            continue;
+        
+        SDKHook(i, SDKHook_OnTakeDamage, onTakeDamage);
+    }
+
+    AutoExecConfig(true,"l4d2_sm_satellite");
+}
+
+public void OnPluginEnd() {
+    for(int i = 1; i <= MaxClients; i++) {
+        if(!IsClientConnected(i) || !IsClientInGame(i))
+            continue;
+        
+        SDKUnhook(i, SDKHook_OnTakeDamage, onTakeDamage);
+    }
+}
+
+public void OnPluginSettingsUpdated(ConVar convar, const char[] oldValue, const char[] newValue) {
+    g_psPluginSettings.updateCache();
+    g_ssSatelliteSettings[AMMO_TYPE_BLIZZARD].updateCache();
+    g_ssSatelliteSettings[AMMO_TYPE_INFERNO].updateCache();
+    g_ssSatelliteSettings[AMMO_TYPE_JUDGEMENT].updateCache();
+}
+
+public void OnClientPutInServer(int client) {
+    SDKHook(client, SDKHook_OnTakeDamage, onTakeDamage);
+}
+
+public void OnClientDisconnect(int client) {
+    SDKUnhook(client, SDKHook_OnTakeDamage, onTakeDamage);
+}
+
+
+public Action onTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
+{
+    if(damage < 0.1)
+        return Plugin_Continue;
+
+    char ammoType[1];
+    GetEntPropString(attacker, Prop_Data, "m_iName", ammoType, sizeof(ammoType));
+
+    if ((damagetype & DMG_BLAST || damagetype & DMG_BLAST_SURFACE || damagetype & DMG_AIRBOAT || damagetype & DMG_PLASMA))
+    {
+        if(satelliteHasFriendlyFire(StringToInt(ammoType)))
+            return Plugin_Continue;
+
+        damage = 0.0;
+        return Plugin_Handled;
+    }
+    return Plugin_Continue;
+}
+
+public void OnMapStart() {
+    resetAllPlayersAmmo();
+
+    PrecacheModel(ENTITY_PROPANE, true);
+    PrecacheModel(ENTITY_GASCAN, true);
+
+    g_BeamSprite = PrecacheModel(SPRITE_BEAM);
+    g_HaloSprite = PrecacheModel(SPRITE_HALO);
+    g_GlowSprite = PrecacheModel(SPRITE_GLOW);
+    PrecacheParticle(PARTICLE_FIRE01);
+    PrecacheParticle(PARTICLE_FIRE02);
+    PrecacheParticle(PARTICLE_FIREBLUE01);
+    PrecacheParticle(PARTICLE_FIREBLUE02);
+
+    PrecacheSound(SOUND_NEGATIVE, true);
+    PrecacheSound(SOUND_SHOOT01, true);
+    PrecacheSound(SOUND_SHOOT02, true);
+    PrecacheSound(SOUND_SHOOT03, true);
+    PrecacheSound(SOUND_SHOOT04, true);
+    PrecacheSound(SOUND_SHOOT05, true);
+    PrecacheSound(SOUND_SHOOT06, true);
+    PrecacheSound(SOUND_SHOOT07, true);
+    PrecacheSound(SOUND_SHOOT08, true);
+    PrecacheSound(SOUND_SHOOT09, true);
+    PrecacheSound(SOUND_TRACING, true);
+    PrecacheSound(SOUND_IMPACT01, true);
+    PrecacheSound(SOUND_IMPACT02, true);
+    PrecacheSound(SOUND_IMPACT03, true);
+    PrecacheSound(SOUND_FREEZE, true);
+    PrecacheSound(SOUND_DEFROST, true);
+
+    for(int i = 0; i < SATELLITE_AMMO_TYPE_COUNT; i++) {
+        if(i == AMMO_TYPE_ALL || i == AMMO_TYPE_IDLE)
+            continue;
+
+        if(getSatelliteUsageResetTiming(i) & RT_MAP_START) {
+            for(int client = 1; client <= MaxClients; client++) {
+                resetPlayerAmmo(client, i);
+            }
+        }
+    }
+}
+
+void initPlayersAmmo() {
+    for(int i = 1; i <= MaxClients; i++) {
+        SatelliteAmmo blizzard;
+        SatelliteAmmo inferno;
+        SatelliteAmmo judgement;
+        g_spSatellitePlayers[i].ammoBlizzard = blizzard;
+        g_spSatellitePlayers[i].ammoInferno = inferno;
+        g_spSatellitePlayers[i].ammoJudgement = judgement;
+        g_spSatellitePlayers[i].ammoBlizzard.isInfinityAmmo = false;
+        g_spSatellitePlayers[i].ammoInferno.isInfinityAmmo = false;
+        g_spSatellitePlayers[i].ammoJudgement.isInfinityAmmo = false;
+        resetPlayerAmmo(i, AMMO_TYPE_ALL);
+    }
+}
+
+void resetAllPlayersAmmo() {
+    for(int i = 1; i <= MaxClients; i++) {
+        resetPlayerAmmo(i, AMMO_TYPE_ALL);
+    }
+}
+
+/**
+ * Reset the player's satellite cannon ammo.
+ *
+ * @param client      Client index
+ * @param ammoType    Ammo type with enum.
+ */
+void resetPlayerAmmo(int client, int ammoType) {
+    switch(ammoType) {
+        case AMMO_TYPE_BLIZZARD: {
+            setPlayerAmmo(client, ammoType, getSatelliteMaxUses(AMMO_TYPE_BLIZZARD));
+        }
+
+        case AMMO_TYPE_INFERNO: {
+            setPlayerAmmo(client, ammoType, getSatelliteMaxUses(AMMO_TYPE_INFERNO));
+        }
+
+        case AMMO_TYPE_JUDGEMENT: {
+            setPlayerAmmo(client, ammoType, getSatelliteMaxUses(AMMO_TYPE_JUDGEMENT));
+        }
+
+        case AMMO_TYPE_ALL: {
+            setPlayerAmmo(client, ammoType, getSatelliteMaxUses(AMMO_TYPE_BLIZZARD));
+            setPlayerAmmo(client, ammoType, getSatelliteMaxUses(AMMO_TYPE_INFERNO));
+            setPlayerAmmo(client, ammoType, getSatelliteMaxUses(AMMO_TYPE_JUDGEMENT));
+        }
+    }
+}
+
+void setPlayerAmmo(int client, int ammoType, int ammoCount) {
+    switch(ammoType) {
+        case AMMO_TYPE_BLIZZARD: {
+            g_spSatellitePlayers[client].ammoBlizzard.usesLeft = ammoCount;
+        }
+
+        case AMMO_TYPE_INFERNO: {
+            g_spSatellitePlayers[client].ammoInferno.usesLeft = ammoCount;
+        }
+
+        case AMMO_TYPE_JUDGEMENT: {
+            g_spSatellitePlayers[client].ammoJudgement.usesLeft = ammoCount;
+        }
+
+        case AMMO_TYPE_ALL: {
+            g_spSatellitePlayers[client].ammoBlizzard.usesLeft = ammoCount;
+            g_spSatellitePlayers[client].ammoInferno.usesLeft = ammoCount;
+            g_spSatellitePlayers[client].ammoJudgement.usesLeft = ammoCount;
+        }
+    }
+}
+
+bool isValidClient(int client) {
+    return client > 0 && client <= MaxClients && IsClientConnected(client) && IsClientInGame(client) && !IsFakeClient(client);
+}
+
+public Action onPlayerDeath(Handle event, const char[] name, bool dontBroadcast) {
+    for(int i = 0; i < SATELLITE_AMMO_TYPE_COUNT; i++) {
+        if(i == AMMO_TYPE_ALL || i == AMMO_TYPE_IDLE)
+            continue;
+        
+        if(getSatelliteUsageResetTiming(i) & RT_ON_DEATH) {
+            int client = GetClientOfUserId(GetEventInt(event, "userid"));
+            resetPlayerAmmo(client, i);
+        }
+    }
+    return Plugin_Continue;
+}
+
+public Action onRoundStart(Handle event, const char[] name, bool dontBroadcast)
+{
+    for(int i = 1; i < SATELLITE_AMMO_TYPE_COUNT; i++) {
+        if(i == AMMO_TYPE_ALL || i == AMMO_TYPE_IDLE)
+            continue;
+
+        if(getSatelliteUsageResetTiming(i) & RT_ROUND_START) {
+            for(int client = 1; client <= MaxClients; client++) {
+                resetPlayerAmmo(client, i);
+            }
+        }
+    }
+    if(g_psPluginSettings.values.usageResetTiming & RT_ROUND_START) {
+        resetAllPlayersAmmo();
+    }
+    ResetParameter();
+    return Plugin_Continue;
+}
+
+public void ResetParameter()
+{
+    for(int j = 0; j < MAXPLAYERS+1; j++)
+        g_spSatellitePlayers[j].isActionBlocked = false;
 }
 
 /******************************************************
-*	When plugin started
+*    Event when using magnum pistol
+*******************************************************/    
+public Action onWeaponFired(Handle event, const char[] name, bool dontBroadcast)
+{
+    if(!g_psPluginSettings.values.enabled)
+        return Plugin_Continue;
+
+    int attacker = GetClientOfUserId(GetEventInt(event, "userid"));
+
+    /* Bot can't use */
+    if(GetClientTeam(attacker) != SURVIVOR || IsFakeClient(attacker))
+        return Plugin_Continue;
+
+    char mode[16];
+    GetConVarString(FindConVar("mp_gamemode"), mode, sizeof(mode));
+    if(StrEqual(mode, "versus"))
+        return Plugin_Continue;
+    
+    char weapon[64];
+    GetEventString(event, "weapon", weapon, sizeof(weapon));
+    
+    /* Admin only? */
+    if(!StrEqual(weapon, "pistol_magnum"))
+        return Plugin_Continue;
+    
+    if(g_spSatellitePlayers[attacker].currentAmmoType <= AMMO_TYPE_ALL)
+        return Plugin_Continue;
+
+    if(!checkSatelliteCanShoot(attacker)) {
+        warnEmptyAmmo(attacker, g_spSatellitePlayers[attacker].currentAmmoType);
+        return Plugin_Continue;
+    }
+
+    g_spSatellitePlayers[attacker].lastAmmoType = g_spSatellitePlayers[attacker].currentAmmoType;
+
+    /* Emit sound */
+    int soundNo = GetRandomInt(1, 9);
+    if(soundNo == 1)  EmitSoundToAll(SOUND_SHOOT01, attacker);
+    else if(soundNo == 2)  EmitSoundToAll(SOUND_SHOOT02, attacker);
+    else if(soundNo == 3)  EmitSoundToAll(SOUND_SHOOT03, attacker);
+    else if(soundNo == 4)  EmitSoundToAll(SOUND_SHOOT04, attacker);
+    else if(soundNo == 5)  EmitSoundToAll(SOUND_SHOOT05, attacker);
+    else if(soundNo == 6)  EmitSoundToAll(SOUND_SHOOT06, attacker);
+    else if(soundNo == 7)  EmitSoundToAll(SOUND_SHOOT07, attacker);
+    else if(soundNo == 8)  EmitSoundToAll(SOUND_SHOOT08, attacker);
+    else if(soundNo == 9)  EmitSoundToAll(SOUND_SHOOT09, attacker);
+        
+    /* Trace and show effect */
+    GetTracePosition(attacker);
+    EmitAmbientSound(SOUND_TRACING, g_spSatellitePlayers[attacker].tracePosition);
+    CreateLaserEffect(attacker, 150, 150, 230, 230, 0.5, 0.2, LASER_EFFECT_TYPE_NORMAL);
+    CreateSparkEffect(attacker, 1200, 5);
+    
+    /* Ready to launch */
+    CreateTimer(0.2, TraceTimer, attacker);
+    subtractSatelliteUses(attacker);
+    notifyWhenAmmoEmpty(attacker);
+    
+    /* Reload compulsorily */
+    int wData = GetEntDataEnt2(attacker, g_hActiveWeapon);
+    SetEntData(wData, g_hiClip1, 0);
+    return Plugin_Continue;
+}
+
+public Action onItemPickUp(Handle event, const char[] name, bool dontBroadcast)
+{
+    if(!g_psPluginSettings.values.enabled)
+        return Plugin_Continue;
+
+    int client = GetClientOfUserId(GetEventInt(event, "userid"));
+
+    if(!isValidClient(client)) 
+        return Plugin_Continue;
+
+    char item[64];
+    GetEventString(event, "item", item, sizeof(item));
+    
+    if(!StrEqual(item, "pistol_magnum"))
+        return Plugin_Continue;
+    
+    /* Display hint how to switch mode */
+    CreateTimer(0.3, DisplayInstructorHint, client);
+    g_spSatellitePlayers[client].currentAmmoType = AMMO_TYPE_IDLE;
+    return Plugin_Continue;
+}
+
+public Action OnPlayerRunCmd(int client, int &buttons)
+{
+    if(!g_psPluginSettings.values.enabled)
+        return Plugin_Continue;
+
+    if(IsClientInGame(client) && IsPlayerAlive(client) && IsPlayerAlive(client) && GetClientTeam(client) == SURVIVOR)
+    {
+        /* If freezing, block mouse operation */
+        if(g_spSatellitePlayers[client].isActionBlocked)
+        {
+            if(buttons & IN_ATTACK)
+                buttons &= ~IN_ATTACK;
+            if(buttons & IN_ATTACK2)
+                buttons &= ~IN_ATTACK2;
+        }
+        
+        /* When zoom key is pushed */
+        if(buttons & IN_ZOOM)
+        {
+            char weapon[64];
+            GetClientWeapon(client, weapon, 64);
+            
+            if (StrEqual(weapon, "weapon_pistol_magnum"))
+            {
+                /* Mode change menu */
+                ChangeMode(client);
+            }
+        }
+    }
+    return Plugin_Continue;
+}
+
+public void ChangeMode(int client)
+{
+    char mStrJud[64], mStrBli[64], mStrInf[64], mStrIdle[64],_ammoName[32];
+
+    getAmmoName(_ammoName, sizeof(_ammoName), AMMO_TYPE_BLIZZARD, client);
+    Format(mStrBli, sizeof(mStrBli), "%s %t", _ammoName, "sc menu ammo left", g_spSatellitePlayers[client].ammoBlizzard.usesLeft);
+    getAmmoName(_ammoName, sizeof(_ammoName), AMMO_TYPE_INFERNO, client);
+    Format(mStrInf, sizeof(mStrInf), "%s %t", _ammoName, "sc menu ammo left", g_spSatellitePlayers[client].ammoInferno.usesLeft);
+    getAmmoName(_ammoName, sizeof(_ammoName), AMMO_TYPE_JUDGEMENT, client);
+    Format(mStrJud, sizeof(mStrJud), "%s %t", _ammoName, "sc menu ammo left", g_spSatellitePlayers[client].ammoJudgement.usesLeft);
+    getAmmoName(_ammoName, sizeof(_ammoName), AMMO_TYPE_IDLE, client);
+    Format(mStrIdle, sizeof(mStrIdle), "%s", _ammoName);
+    
+    Handle menu = CreateMenu(ChangeModeMenu);
+    SetMenuTitle(menu, "%t", "sc menu title");
+    AddMenuItem(menu, "ammo_blizzard", mStrBli);
+    AddMenuItem(menu, "ammo_inferno", mStrInf);
+    AddMenuItem(menu, "ammo_judgement", mStrJud);
+    AddMenuItem(menu, "ammo_idle", mStrIdle);
+    SetMenuExitButton(menu, true);
+    DisplayMenu(menu, client, 45);
+}
+
+public int ChangeModeMenu(Handle menu, MenuAction action, int client, int itemNum)
+{
+    if(action == MenuAction_Select)
+    {
+        char preference[32];
+        GetMenuItem(menu, itemNum, preference, sizeof(preference));
+
+        if(strcmp(preference, "ammo_blizzard") == 0) {
+            g_spSatellitePlayers[client].currentAmmoType = AMMO_TYPE_BLIZZARD;
+
+            printAmmoTypeChangeMessage(client, AMMO_TYPE_BLIZZARD);
+        }
+        else if(strcmp(preference, "ammo_inferno") == 0) {
+            g_spSatellitePlayers[client].currentAmmoType = AMMO_TYPE_INFERNO;
+
+            printAmmoTypeChangeMessage(client, AMMO_TYPE_INFERNO);
+        }
+        else if(strcmp(preference, "ammo_judgement") == 0) {
+            g_spSatellitePlayers[client].currentAmmoType = AMMO_TYPE_JUDGEMENT;
+
+            printAmmoTypeChangeMessage(client, AMMO_TYPE_JUDGEMENT);
+        }
+        else if(strcmp(preference, "ammo_idle") == 0) {
+            g_spSatellitePlayers[client].currentAmmoType = AMMO_TYPE_IDLE;
+
+            printAmmoTypeChangeMessage(client, AMMO_TYPE_IDLE);
+        }
+
+
+        if(!checkSatelliteCanShoot(client) && g_spSatellitePlayers[client].currentAmmoType != AMMO_TYPE_IDLE) {
+            warnEmptyAmmo(client, g_spSatellitePlayers[client].currentAmmoType);
+            EmitSoundToClient(client, SOUND_NEGATIVE);
+            g_spSatellitePlayers[client].currentAmmoType = AMMO_TYPE_IDLE;
+        }
+        // Implement notifycation when ammo is out.
+        // if(itemNum != 3 && energy[client][itemNum+1] <= 0)
+        // {
+        //     PrintHintText(client, MESSAGE_EMPTY1);
+        //     EmitSoundToClient(client, SOUND_NEGATIVE);
+        //     g_spSatellitePlayers[client].currentAmmoType = AMMO_TYPE_IDLE;
+        // }
+        // else
+        // {
+        //     EmitSoundToClient(client, SOUND_SHOOT02);
+        // }
+    }
+    return 0;
+}
+
+/******************************************************
+*    Timer functions about launching
 *******************************************************/
-public void OnPluginStart()
+public Action TraceTimer(Handle timer, any client)
 {
-	sm_satellite_enable			= CreateConVar("sm_satellite_enable","1","0:OFF 1:ON", FCVAR_NOTIFY);
-	sm_satellite_damage_01		= CreateConVar("sm_satellite_damage_01","300.0", "Damage of Satellite cannon (Mode:JUDGEMENT)", FCVAR_NOTIFY);
-	sm_satellite_freeze_02		= CreateConVar("sm_satellite_freeze_02","5.0", "Freeze time of Satellite cannon (Mode:BLIZZARD)", FCVAR_NOTIFY);
-	sm_satellite_damage_03		= CreateConVar("sm_satellite_damage_03","420.0", "Damage of Satellite cannon (Mode:INFERNO)", FCVAR_NOTIFY);
-	sm_satellite_burst_delay	= CreateConVar("sm_satellite_burst_delay","1.0", "Launching delay of Satellite cannon", FCVAR_NOTIFY);
-	sm_satellite_force			= CreateConVar("sm_satellite_force","600.0", "Push force of Satellite cannon", FCVAR_NOTIFY);
-	sm_satellite_radius_01		= CreateConVar("sm_satellite_radius_01","300.0", "Radius of Satellite cannon (Mode:JUDGEMENT)", FCVAR_NOTIFY);
-	sm_satellite_radius_02		= CreateConVar("sm_satellite_radius_02","230.0", "Radius of Satellite cannon (Mode:BLIZZARD)", FCVAR_NOTIFY);
-	sm_satellite_radius_03		= CreateConVar("sm_satellite_radius_03","200.0", "Radius of Satellite cannon (Mode:INFERNO)", FCVAR_NOTIFY);
-	sm_satellite_limit_01		= CreateConVar("sm_satellite_limit_01","50", "Frequency limitation in one round (Mode:JUDGEMENT)", FCVAR_NOTIFY);
-	sm_satellite_limit_02		= CreateConVar("sm_satellite_limit_02","50", "Frequency limitation in one round (Mode:BLIZZARD)", FCVAR_NOTIFY);
-	sm_satellite_limit_03		= CreateConVar("sm_satellite_limit_03","50", "Frequency limitation in one round (Mode:INFERNO)", FCVAR_NOTIFY);
-	sm_satellite_height			= CreateConVar("sm_satellite_height","650", "Height of launching point", FCVAR_NOTIFY);
-	sm_satellite_adminonly		= CreateConVar("sm_satellite_adminonly","0", "Admin only (0:OFF 1:ON 2:INFINITY)", FCVAR_NOTIFY);
-	sm_satellite_friendly		= CreateConVar("sm_satellite_friendly","1", "No damage (0:OFF 1:ON)");
-	sm_satellite_mlimit_01		= CreateConVar("sm_satellite_mlimit_01","5", "Limit for multiple ammo (Mode:JUDGEMENT)", FCVAR_NOTIFY);
-	sm_satellite_mlimit_02		= CreateConVar("sm_satellite_mlimit_02","5", "Limit for multiple ammo (Mode:BLIZZARD)", FCVAR_NOTIFY);
-	sm_satellite_mlimit_03		= CreateConVar("sm_satellite_mlimit_03","5", "Limit for multiple ammo (Mode:INFERNO)", FCVAR_NOTIFY);
-	
-	HookEvent("weapon_fire", Event_Weapon_Fire);
-	HookEvent("item_pickup", Event_Item_Pickup);
-	HookEvent("round_start", Event_Round_Start);
-	HookEvent("player_spawn", Event_HookD);
-	
-	hActiveWeapon = FindSendPropInfo ("CTerrorPlayer", "m_hActiveWeapon");
-	m_iClip1 = FindSendPropInfo("CBaseCombatWeapon", "m_iClip1");
-	
-	AutoExecConfig(true,"l4d2_sm_satellite");
+    /* Ring laser effect */
+    CreateRingEffect(client, 150, 150, 230, 230, 2.0,
+                getClientSatelliteBurstDelay(client));
+    
+    /* Launch satellite cannon */
+    raycount[client] = 0;
+    
+    CreateTimer(getClientSatelliteBurstDelay(client),
+                SatelliteTimer, client);
+    
+    return Plugin_Continue;
+}
+
+public Action SatelliteTimer(Handle timer, any client)
+{
+    if(!IsValidEntity(client) || !IsClientInGame(client) || !IsPlayerAlive(client))
+        return Plugin_Handled;
+
+    int ammoType = g_spSatellitePlayers[client].lastAmmoType;
+
+    if(ammoType <= AMMO_TYPE_ALL)
+        ammoType = AMMO_TYPE_JUDGEMENT;
+
+    switch(g_spSatellitePlayers[client].lastAmmoType) {
+        case AMMO_TYPE_BLIZZARD: {
+            Blizzard(client);
+        }
+        case AMMO_TYPE_INFERNO: {
+            castInferno(client);
+        }
+        case AMMO_TYPE_JUDGEMENT: {
+            Judgement(client);
+        }
+    }
+
+    return Plugin_Handled;
+}
+
+void notifyWhenAmmoEmpty(int client) {
+    switch(g_spSatellitePlayers[client].currentAmmoType) {
+        case AMMO_TYPE_BLIZZARD: {
+            if(g_spSatellitePlayers[client].ammoBlizzard.usesLeft < 1) {
+                printEmptyMessage(client, g_spSatellitePlayers[client].currentAmmoType);
+                g_spSatellitePlayers[client].currentAmmoType = AMMO_TYPE_IDLE;
+            }
+        }
+
+        case AMMO_TYPE_INFERNO: {
+            if(g_spSatellitePlayers[client].ammoInferno.usesLeft < 1) {
+                printEmptyMessage(client, g_spSatellitePlayers[client].currentAmmoType);
+                g_spSatellitePlayers[client].currentAmmoType = AMMO_TYPE_IDLE;
+            }
+        }
+
+        case AMMO_TYPE_JUDGEMENT: {
+            if(g_spSatellitePlayers[client].ammoJudgement.usesLeft < 1) {
+                printEmptyMessage(client, g_spSatellitePlayers[client].currentAmmoType);
+                g_spSatellitePlayers[client].currentAmmoType = AMMO_TYPE_IDLE;
+            }
+        }
+    }
+}
+
+void subtractSatelliteUses(int client) {
+    switch(g_spSatellitePlayers[client].currentAmmoType) {
+        case AMMO_TYPE_ALL, AMMO_TYPE_IDLE: {
+
+        }
+
+        case AMMO_TYPE_BLIZZARD: {
+            if(!g_spSatellitePlayers[client].ammoBlizzard.isInfinityAmmo)
+                g_spSatellitePlayers[client].ammoBlizzard.usesLeft--;
+        }
+
+        case AMMO_TYPE_INFERNO: {
+            if(!g_spSatellitePlayers[client].ammoInferno.isInfinityAmmo)
+                g_spSatellitePlayers[client].ammoInferno.usesLeft--;
+        }
+
+        case AMMO_TYPE_JUDGEMENT: {
+            if(!g_spSatellitePlayers[client].ammoJudgement.isInfinityAmmo)
+                g_spSatellitePlayers[client].ammoJudgement.usesLeft--;
+        }
+    }
+}
+
+public void Judgement(int client)
+{
+    float pos[3];
+    int ammoType = AMMO_TYPE_JUDGEMENT;
+    
+    /* Emit impact sound */
+    EmitAmbientSound(SOUND_IMPACT01, g_spSatellitePlayers[client].tracePosition);
+    
+    /* Laser effect */
+    CreateLaserEffect(client, 230, 230, 80, 230, 6.0, 1.0, LASER_EFFECT_TYPE_VERTICAL);
+    
+    /* Damage to special infected */
+    for(int i = 1; i <= MaxClients; i ++)
+    {
+        if(!IsClientInGame(i) || GetClientTeam(i) != 3)
+            continue;
+        GetClientAbsOrigin(i, pos);
+
+        if(!(GetVectorDistance(pos, g_spSatellitePlayers[client].tracePosition) < getSatelliteRadius(ammoType)))
+            continue;
+        
+        if (!satelliteHasFriendlyFire(ammoType))
+            continue;
+
+        DamageEffect(i, getSatelliteDamage(ammoType));
+    }
+    /* Explode */
+    LittleFlower(client, EXPLOSION_TYPE_EXPLODE, ammoType);
+    
+    /* Push away */
+    PushAway(client, getSatellitePushForce(ammoType),
+            getSatelliteRadius(ammoType), 0.5);
+}
+
+public void Blizzard(int client)
+{
+
+    int MEspecialClassMag;
+    MEspecialClassMag = FindSendPropInfo("CTerrorPlayer", "m_zombieClass");
+    float pos[3];
+
+    int ammoType = AMMO_TYPE_BLIZZARD;
+    
+    /* Emit impact sound */
+    EmitAmbientSound(SOUND_IMPACT01, g_spSatellitePlayers[client].tracePosition);
+    EmitAmbientSound(SOUND_IMPACT02, g_spSatellitePlayers[client].tracePosition);
+    
+    /* Laser effect */
+    CreateLaserEffect(client, 80, 80, 230, 230, 6.0, 1.0, LASER_EFFECT_TYPE_VERTICAL);
+    ShowParticle(g_spSatellitePlayers[client].tracePosition, PARTICLE_FIREBLUE01, 0.7);
+    ShowParticle(g_spSatellitePlayers[client].tracePosition, PARTICLE_FIREBLUE02, 0.7);
+    TE_SetupBeamRingPoint(g_spSatellitePlayers[client].tracePosition, 10.0, getSatelliteRadius(ammoType),
+                        g_BeamSprite, g_HaloSprite, 0, 10, 0.3, 10.0, 0.5,
+                        {40, 40, 230, 230}, 400, 0);
+    TE_SendToAll();
+    
+    /* Freeze special infected and survivor in the radius */
+    for(int i = 1; i <= MaxClients; i ++)
+    {
+        if(!IsClientInGame(i))
+            continue;
+        GetClientEyePosition(i, pos);
+
+        if(!(GetVectorDistance(pos, g_spSatellitePlayers[client].tracePosition) < getSatelliteRadius(ammoType)))
+            continue;
+        
+        switch(GetClientTeam(i)) {
+            case SURVIVOR: {
+                if(!satelliteHasFriendlyFire(ammoType) && i != client)
+                    return;
+
+                FreezePlayer(i, pos, g_ssSatelliteSettings[ammoType].values.ammoAbillity1);
+            }
+
+            case INFECTED: {
+                int EventEClassMag = GetEntData(i, MEspecialClassMag);
+                if(EventEClassMag <= 8)
+                    FreezePlayer(i, pos, g_ssSatelliteSettings[ammoType].values.ammoAbillity1);
+            }
+        }
+
+    }
+    
+    /* Freeze infected in the radius */
+    int MaxEntities;
+    char mName[64];
+    float entPos[3];
+    
+    MaxEntities = GetMaxEntities();
+    for (int i = 1; i <= MaxEntities; i++)
+    {
+        if (IsValidEdict(i) && IsValidEntity(i))
+        {
+            GetEntPropString(i, Prop_Data, "m_ModelName", mName, sizeof(mName));
+            if (StrContains(mName, "infected") != -1)
+            {
+                GetEntPropVector(i, Prop_Send, "m_vecOrigin", entPos);
+                if (GetVectorDistance(g_spSatellitePlayers[client].tracePosition, entPos) < getSatelliteRadius(ammoType))
+                {
+                    EmitAmbientSound(SOUND_FREEZE, entPos, i, SNDLEVEL_RAIDSIREN);
+                    TE_SetupGlowSprite(entPos, g_GlowSprite, 5.0, 3.0, 130);
+                    TE_SendToAll();
+                    DamageEffect(i, 100.0);
+                }
+            }
+        }
+    }
+    /* Push away */
+    PushAway(client, getSatellitePushForce(ammoType),
+            getSatelliteRadius(ammoType), 0.5);
+    
+}
+
+public void castInferno(int client) {
+    float eyePosition[3];
+
+    /* Emit impact sound */
+    EmitAmbientSound(SOUND_IMPACT01, g_spSatellitePlayers[client].tracePosition);
+    EmitAmbientSound(SOUND_IMPACT03, g_spSatellitePlayers[client].tracePosition);
+    
+    /* Laser effect */
+    CreateLaserEffect(client, 230, 40, 40, 230, 6.0, 1.0, LASER_EFFECT_TYPE_VERTICAL);
+    ShowParticle(g_spSatellitePlayers[client].tracePosition, PARTICLE_FIRE01, 3.0);
+    ShowParticle(g_spSatellitePlayers[client].tracePosition, PARTICLE_FIRE02, 3.0);
+
+    /* Ignite special infected and survivor in the radius */
+    for(int i = 1; i <= MaxClients; i++) {
+        if(!IsClientConnected(i) || !IsClientInGame(i)) 
+            continue;
+
+        GetClientEyePosition(i, eyePosition);
+
+        if(!(GetVectorDistance(eyePosition, g_spSatellitePlayers[client].tracePosition) < getSatelliteRadius(AMMO_TYPE_INFERNO)))
+            continue;
+            
+        switch(GetClientTeam(i)) {
+            case SURVIVOR: {
+                if(!satelliteHasFriendlyFire(AMMO_TYPE_INFERNO))
+                    continue;
+
+                ScreenFade(i, 200, 0, 0, 150, 80, 1);
+                DamageEffect(i, 5.0);
+            }
+            case INFECTED: {
+                IgniteEntity(i, 10.0);
+                DamageEffect(i, getSatelliteDamage(AMMO_TYPE_INFERNO));
+            }
+        }
+    }
+
+    /* Ignite infected in the radius */
+    //int MaxEntities;
+    char mName[64];
+    float entPos[3];
+
+    //MaxEntities = GetMaxEntities();
+    for(int i = 1; i <= MaxClients; i++)
+    {
+        if(!IsValidEdict(i) || !IsValidEntity(i))
+            continue;
+        
+        GetEntPropString(i, Prop_Data, "m_ModelName", mName, sizeof(mName));
+        if(StrContains(mName, "infected") == -1)
+            continue;
+        
+        GetEntPropVector(i, Prop_Send, "m_vecOrigin", entPos);
+        entPos[2] += 50;
+
+        if(!(GetVectorDistance(g_spSatellitePlayers[client].tracePosition, entPos) < getSatelliteRadius(AMMO_TYPE_INFERNO))) 
+            continue;
+
+        if(!satelliteHasFriendlyFire(AMMO_TYPE_INFERNO))
+            continue;
+
+        IgniteEntity(i, 10.0);
+        DamageEffect(i, 50.0);
+    }
+
+    PushAway(
+        client,
+        getSatellitePushForce(AMMO_TYPE_INFERNO),
+        getSatelliteRadius(AMMO_TYPE_INFERNO),
+        0.5
+    );
+}
+
+public Action DefrostPlayer(Handle timer, any entity)
+{
+    if(IsValidEdict(entity) && IsValidEntity(entity))
+    {
+        float entPos[3];
+        GetEntPropVector(entity, Prop_Send, "m_vecOrigin", entPos);
+        EmitAmbientSound(SOUND_DEFROST, entPos, entity, SNDLEVEL_RAIDSIREN);
+        SetEntityMoveType(entity, MOVETYPE_WALK);
+        SetEntityRenderColor(entity, 255, 255, 255, 255);
+        ScreenFade(entity, 0, 0, 0, 0, 0, 1);
+        g_spSatellitePlayers[entity].isActionBlocked = false;
+    }
+    return Plugin_Continue;
+}
+
+public Action DeletePushForce(Handle timer, any ent)
+{
+    if (IsValidEntity(ent))
+    {
+        char classname[64];
+        GetEdictClassname(ent, classname, sizeof(classname));
+        if (StrEqual(classname, "point_push", false))
+        {
+            AcceptEntityInput(ent, "Disable");
+            AcceptEntityInput(ent, "Kill"); 
+            RemoveEdict(ent);
+        }
+    }
+    return Plugin_Continue;
 }
 
 /******************************************************
-*	Initial functions
+*    TE functions
 *******************************************************/
-public OnMapStart()
+public void GetTracePosition(int client)
 {
-	ResetParameter();
-	
-	/* Precache models */
-	PrecacheModel(ENTITY_PROPANE, true);
-	PrecacheModel(ENTITY_GASCAN, true);
-	
-	g_BeamSprite = PrecacheModel(SPRITE_BEAM);
-	g_HaloSprite = PrecacheModel(SPRITE_HALO);
-	g_GlowSprite = PrecacheModel(SPRITE_GLOW);
-	PrecacheParticle(PARTICLE_FIRE01);
-	PrecacheParticle(PARTICLE_FIRE02);
-	PrecacheParticle(PARTICLE_FIREBLUE01);
-	PrecacheParticle(PARTICLE_FIREBLUE02);
-	
-	/* Precache sounds */
-	PrecacheSound(SOUND_NEGATIVE, true);
-	PrecacheSound(SOUND_SHOOT01, true);
-	PrecacheSound(SOUND_SHOOT02, true);
-	PrecacheSound(SOUND_SHOOT03, true);
-	PrecacheSound(SOUND_SHOOT04, true);
-	PrecacheSound(SOUND_SHOOT05, true);
-	PrecacheSound(SOUND_SHOOT06, true);
-	PrecacheSound(SOUND_SHOOT07, true);
-	PrecacheSound(SOUND_SHOOT08, true);
-	PrecacheSound(SOUND_SHOOT09, true);
-	PrecacheSound(SOUND_TRACING, true);
-	PrecacheSound(SOUND_IMPACT01, true);
-	PrecacheSound(SOUND_IMPACT02, true);
-	PrecacheSound(SOUND_IMPACT03, true);
-	PrecacheSound(SOUND_FREEZE, true);
-	PrecacheSound(SOUND_DEFROST, true);
+    float myPos[3], myAng[3], tmpPos[3], entPos[3];
+    
+    GetClientEyePosition(client, myPos);
+    GetClientEyeAngles(client, myAng);
+    Handle trace = TR_TraceRayFilterEx(myPos, myAng, CONTENTS_SOLID|CONTENTS_MOVEABLE, RayType_Infinite, TraceEntityFilterPlayer, client);
+    if(TR_DidHit(trace))
+    {
+        tEntity = TR_GetEntityIndex(trace);
+        GetEntPropVector(tEntity, Prop_Send, "m_vecOrigin", entPos);
+        TR_GetEndPosition(tmpPos, trace);
+    }
+    CloseHandle(trace);
+    for(int i = 0; i < 3; i++)
+        g_spSatellitePlayers[client].tracePosition[i] = tmpPos[i];
 }
 
-public Action:Event_Round_Start(Handle:event, const String:name[], bool:dontBroadcast)
+public void MoveTracePosition(int client, int min, int max)
 {
-	ResetParameter();
-}
-
-public ResetParameter()
-{
-	for(new i = 0; i < MAXPLAYERS+1; i++)
-	{
-		energy[i][MODE_JUDGEMENT] = GetConVarInt(sm_satellite_limit_01);
-		energy[i][MODE_BLIZZARD] = GetConVarInt(sm_satellite_limit_02);
-		energy[i][MODE_INFERNO] = GetConVarInt(sm_satellite_limit_03);
-		Block1[i] = 0;
-		Block2[i] = 0;
-		Block3[i] = 0;
-	}
-	for(new j = 0; j < MAXPLAYERS+1; j++)
-		freeze[j] = OFF;
-}
-
-/******************************************************
-*	Event when using magnum pistol
-*******************************************************/	
-public Action:Event_Weapon_Fire(Handle:event, const String:name[], bool:dontBroadcast)
-{
-	decl String:mode[16];
-	GetConVarString(FindConVar("mp_gamemode"), mode, sizeof(mode));
-	if(StrEqual(mode, "versus"))
-		return;
-	
-	new attacker = GetClientOfUserId(GetEventInt(event, "userid"));
-	decl String:weapon[64];
-	GetEventString(event, "weapon", weapon, sizeof(weapon));
-	
-	/* Admin only? */
-	
-	if (StrEqual(weapon, "pistol_magnum") &&
-		GetConVarInt(sm_satellite_enable) && operation[attacker] > 0)
-	{
-		noprotect[attacker] = 1;
-		/* Admin only in 2, no damage */
-		if(IsClientAdmin(attacker) && GetConVarInt(sm_satellite_adminonly) > 0)
-		{
-			noprotect[attacker] = 0;
-		}
-		if(IsClientAdmin(attacker) && GetConVarInt(sm_satellite_adminonly) == 0)
-		{
-			infiniteammo[attacker] = 0;
-		}
-		if(IsClientAdmin(attacker) && GetConVarInt(sm_satellite_adminonly) == 1)
-		{
-			infiniteammo[attacker] = 0;
-		}
-		if(IsClientAdmin(attacker) && GetConVarInt(sm_satellite_adminonly) == 2)
-		{
-			infiniteammo[attacker] = 1;
-		}
-		
-		/* Bot can't use */
-		if(GetClientTeam(attacker) != SURVIVOR || IsFakeClient(attacker))
-			return;
-		
-		/* Check energy */
-		if(energy[attacker][operation[attacker]] <= 0)
-		{
-			PrintHintText(attacker, MESSAGE_EMPTY1);
-			operation[attacker] = MODE_SLEEP;
-			return;
-		}
-		if(operation[attacker] == MODE_JUDGEMENT)
-		{
-		if(energy[attacker][operation[attacker]] < 15 && Block1[attacker] == 0)
-		{
-			Block1[attacker] = 1;
-			PrintHintText(attacker, MESSAGE_EMPTY2);
-		}
-		if(energy[attacker][operation[attacker]] < 5 && Block1[attacker] == 1)
-		{
-			Block1[attacker] = 2;
-			PrintHintText(attacker, MESSAGE_EMPTY2);
-		}
-		}
-		if(operation[attacker] == MODE_BLIZZARD)
-		{
-		if(energy[attacker][operation[attacker]] < 15 && Block2[attacker] == 0)
-		{
-			Block2[attacker] = 1;
-			PrintHintText(attacker, MESSAGE_EMPTY2);
-		}
-		if(energy[attacker][operation[attacker]] < 5 && Block2[attacker] == 1)
-		{
-			Block2[attacker] = 2;
-			PrintHintText(attacker, MESSAGE_EMPTY2);
-		}
-		}
-		if(operation[attacker] == MODE_INFERNO)
-		{
-		if(energy[attacker][operation[attacker]] < 15 && Block3[attacker] == 0)
-		{
-			Block3[attacker] = 1;
-			PrintHintText(attacker, MESSAGE_EMPTY2);
-		}
-		if(energy[attacker][operation[attacker]] < 5 && Block3[attacker] == 1)
-		{
-			Block3[attacker] = 2;
-			PrintHintText(attacker, MESSAGE_EMPTY2);
-		}
-		}
-		
-		/* Emit sound */
-		new soundNo = GetRandomInt(1, 9);
-		if(soundNo == 1)  EmitSoundToAll(SOUND_SHOOT01, attacker);
-		else if(soundNo == 2)  EmitSoundToAll(SOUND_SHOOT02, attacker);
-		else if(soundNo == 3)  EmitSoundToAll(SOUND_SHOOT03, attacker);
-		else if(soundNo == 4)  EmitSoundToAll(SOUND_SHOOT04, attacker);
-		else if(soundNo == 5)  EmitSoundToAll(SOUND_SHOOT05, attacker);
-		else if(soundNo == 6)  EmitSoundToAll(SOUND_SHOOT06, attacker);
-		else if(soundNo == 7)  EmitSoundToAll(SOUND_SHOOT07, attacker);
-		else if(soundNo == 8)  EmitSoundToAll(SOUND_SHOOT08, attacker);
-		else if(soundNo == 9)  EmitSoundToAll(SOUND_SHOOT09, attacker);
-		
-		/* Trace and show effect */
-		GetTracePosition(attacker);
-		EmitAmbientSound(SOUND_TRACING, trsPos[attacker]);
-		CreateLaserEffect(attacker, 150, 150, 230, 230, 0.5, 0.2, NORMAL);
-		CreateSparkEffect(attacker, 1200, 5);
-		
-		/* Ready to launch */
-		CreateTimer(0.2, TraceTimer, attacker);
-		
-		/* Reload compulsorily */
-		new wData = GetEntDataEnt2(attacker, hActiveWeapon);
-		SetEntData(wData, m_iClip1, 0);
-	}
-}
-
-public Action:Event_Item_Pickup(Handle:event, const String:name[], bool:dontBroadcast)
-{
-	new client = GetClientOfUserId(GetEventInt(event, "userid"));
-	new String:item[64];
-	GetEventString(event, "item", item, sizeof(item));
-	
-	if (StrEqual(item, "pistol_magnum") &&
-		GetConVarInt(sm_satellite_enable) &&
-		IsClientInGame(client) && !IsFakeClient(client))
-	{
-		/* Display hint how to switch mode */
-		ClientCommand(client, "gameinstructor_enable 1");
-		CreateTimer(0.3, DisplayInstructorHint, client);
-		operation[client] = MODE_SLEEP;
-	}
-}
-
-public Action:Event_HookD(Handle:event, const String:name[], bool:dontBroadcast)
-{
-	new client = GetClientOfUserId(GetEventInt(event, "userid"));
-	SDKHook(client, SDKHook_OnTakeDamage, OnTakeDamageMag);
-}
-
-public Action:OnPlayerRunCmd(client, &buttons)
-{
-	if(IsClientInGame(client) && IsPlayerAlive(client) && IsPlayerAlive(client) && GetClientTeam(client) == SURVIVOR)
-	{
-		/* If freezing, block mouse operation */
-		if(freeze[client] == ON)
-		{
-			if(buttons & IN_ATTACK)
-				buttons &= ~IN_ATTACK;
-			if(buttons & IN_ATTACK2)
-				buttons &= ~IN_ATTACK2;
-		}
-		
-		/* When zoom key is pushed */
-		if(buttons & IN_ZOOM)
-		{
-			decl String:weapon[64];
-			GetClientWeapon(client, weapon, 64);
-			
-			if (StrEqual(weapon, "weapon_pistol_magnum") &&
-				GetConVarInt(sm_satellite_enable))
-			{
-				/* Mode change menu */
-				ChangeMode(client);
-			}
-		}
-	}
-	return Plugin_Continue;
-}
-
-public ChangeMode(client)
-{
-	new String:mStrJud[64], String:mStrBli[64], String:mStrInf[64];
-	Format(mStrJud, sizeof(mStrJud), "MODE:    JUDGEMENT      (Energy: %d)", energy[client][MODE_JUDGEMENT]);
-	Format(mStrBli, sizeof(mStrBli), "MODE:    BLIZZARD         (Energy: %d)", energy[client][MODE_BLIZZARD]);
-	Format(mStrInf, sizeof(mStrInf), "MODE:    INFERNO           (Energy: %d)", energy[client][MODE_INFERNO]);
-	
-	new Handle:menu = CreateMenu(ChangeModeMenu);
-	SetMenuTitle(menu, "*** Operation: Satellite System ***\n_______________________________________\n");
-	AddMenuItem(menu, "0", mStrJud);
-	AddMenuItem(menu, "1", mStrBli);
-	AddMenuItem(menu, "2", mStrInf);
-	AddMenuItem(menu, "3", "NORMAL");
-	SetMenuExitButton(menu, true);
-	DisplayMenu(menu, client, 45);
-}
-
-public ChangeModeMenu(Handle:menu, MenuAction:action, client, itemNum)
-{
-	if(action == MenuAction_Select)
-	{
-		switch(itemNum)
-		{
-			case 0:
-			{
-				operation[client] = MODE_JUDGEMENT;
-				PrintHintText(client, MESSAGE_SHIFT1);
-			}
-			case 1:
-			{
-				operation[client] = MODE_BLIZZARD;
-				PrintHintText(client, MESSAGE_SHIFT2);
-			}
-			case 2:
-			{
-				operation[client] = MODE_INFERNO;
-				PrintHintText(client, MESSAGE_SHIFT3);
-			}
-			case 3:
-			{
-				operation[client] = MODE_SLEEP;
-				PrintHintText(client, MESSAGE_SHIFT4);
-			}
-		}
-		if(itemNum != 3 && energy[client][itemNum+1] <= 0)
-		{
-			PrintHintText(client, MESSAGE_EMPTY1);
-			EmitSoundToClient(client, SOUND_NEGATIVE);
-			operation[client] = MODE_SLEEP;
-		}
-		else
-		{
-			EmitSoundToClient(client, SOUND_SHOOT02);
-		}
-	}
-}
-
-/******************************************************
-*	Timer functions about launching
-*******************************************************/
-public Action:TraceTimer(Handle:timer, any:client)
-{
-	/* Ring laser effect */
-	CreateRingEffect(client, 150, 150, 230, 230, 2.0,
-				GetConVarFloat(sm_satellite_burst_delay));
-	
-	/* Launch satellite cannon */
-	raycount[client] = 0;
-	ticket[client] = 0;
-	
-	/* If ducking, three laser launched */
-	if( (GetEntityFlags(client) & FL_DUCKING) &&
-		(GetEntityFlags(client) & FL_ONGROUND))
-		ticket[client] = 1;
-	
-	CreateTimer(GetConVarFloat(sm_satellite_burst_delay),
-				SatelliteTimer, client);
-}
-
-public Action:SatelliteTimer(Handle:timer, any:client)
-{
-	if(!IsValidEntity(client) || !IsClientInGame(client) || !IsPlayerAlive(client))
-		return;
-	
-	if (operation[client] != MODE_JUDGEMENT &&
-		operation[client] != MODE_BLIZZARD &&
-		operation[client] != MODE_INFERNO)
-			operation[client] = MODE_JUDGEMENT;
-	
-	/* Mode: JUDGEMENT */
-	if(operation[client] == MODE_JUDGEMENT)
-	{
-		Judgement(client);
-		if(raycount[client] == 0 && Bulletblock[client] == 0 && infiniteammo[client] == 0)
-			energy[client][MODE_JUDGEMENT]--;
-	}
-	
-	/* Mode: BLIZZARD */
-	else if(operation[client] == MODE_BLIZZARD)
-	{
-		Blizzard(client);
-		if(raycount[client] == 0 && Bulletblock[client] == 0 && infiniteammo[client] == 0)
-			energy[client][MODE_BLIZZARD]--;
-		
-	}
-	
-	/* Mode: INFERNO */
-	else if(operation[client] == MODE_INFERNO)
-	{
-		Inferno(client);
-		if(raycount[client] == 0 && Bulletblock[client] == 0 && infiniteammo[client] == 0)
-			energy[client][MODE_INFERNO]--;
-	}
-	
-	/* If energy becomes empty, display message */
-	if(energy[client][operation[client]] <= 0)
-	{
-		PrintHintText(client, MESSAGE_EMPTY1);
-		operation[client] = MODE_SLEEP;
-	}
-	if(operation[client] == MODE_JUDGEMENT)
-	{
-	if(energy[client][operation[client]] < 15 && Block1[client] == 0)
-	{
-		Block1[client] = 1;
-		PrintHintText(client, MESSAGE_EMPTY2);
-	}
-	if(energy[client][operation[client]] < 5 && Block1[client] == 1)
-	{
-		Block1[client] = 2;
-		PrintHintText(client, MESSAGE_EMPTY2);
-	}
-	}
-	if(operation[client] == MODE_BLIZZARD)
-	{
-	if(energy[client][operation[client]] < 15 && Block2[client] == 0)
-	{
-		Block2[client] = 1;
-		PrintHintText(client, MESSAGE_EMPTY2);
-	}
-	if(energy[client][operation[client]] < 5 && Block2[client] == 1)
-	{
-		Block2[client] = 2;
-		PrintHintText(client, MESSAGE_EMPTY2);
-	}
-	}
-	if(operation[client] == MODE_INFERNO)
-	{
-	if(energy[client][operation[client]] < 15 && Block3[client] == 0)
-	{
-		Block3[client] = 1;
-		PrintHintText(client, MESSAGE_EMPTY2);
-	}
-	if(energy[client][operation[client]] < 5 && Block3[client] == 1)
-	{
-		Block3[client] = 2;
-		PrintHintText(client, MESSAGE_EMPTY2);
-	}
-	}
-	Bulletblock[client] = 0;
-}
-
-public Judgement(client)
-{
-	decl Float:pos[3];
-	
-	/* Emit impact sound */
-	EmitAmbientSound(SOUND_IMPACT01, trsPos[client]);
-	
-	/* Laser effect */
-	CreateLaserEffect(client, 230, 230, 80, 230, 6.0, 1.0, VARTICAL);
-	
-	/* Damage to special infected */
-	for(int i = 1; i <= MaxClients; i ++)
-	{
-		if(!IsClientInGame(i) || GetClientTeam(i) != 3)
-			continue;
-		GetClientAbsOrigin(i, pos);
-		if(GetVectorDistance(pos, trsPos[client]) < GetConVarFloat(sm_satellite_radius_01))
-		{
-			if (GetConVarFloat(sm_satellite_friendly) == 1)
-			{
-				DamageEffect2(i, GetConVarFloat(sm_satellite_damage_01));
-			}
-		}
-	}
-	/* Explode */
-	LittleFlower(client, EXPLODE);
-	
-	/* Push away */
-	PushAway(client, GetConVarFloat(sm_satellite_force),
-			GetConVarFloat(sm_satellite_radius_01), 0.5);
-	
-	if(ticket[client] == 1)
-	{
-		raycount[client]++;
-		Bulletblock[client] = 1;
-		if(raycount[client] >= 3 && Bulletblock[client] == 1)
-		{
-			ticket[client] = 0;
-			raycount[client] = 0;
-			if(infiniteammo[client] == 0)
-			{
-			energy[client][MODE_JUDGEMENT] -= GetConVarInt(sm_satellite_mlimit_01);
-			}
-			if(energy[client][MODE_JUDGEMENT] <= 0)
-			{
-			energy[client][MODE_JUDGEMENT] = 0;
-			}
-			return;
-		}
-		/* Set random offset position */
-		MoveTracePosition(client, 50, 150);
-		CreateTimer(0.17, SatelliteTimer, client);
-	}
-}
-
-public Blizzard(client)
-{
-	int MEspecialClassMag;
-	MEspecialClassMag = FindSendPropInfo("CTerrorPlayer", "m_zombieClass");
-	decl Float:pos[3];
-	
-	/* Emit impact sound */
-	EmitAmbientSound(SOUND_IMPACT01, trsPos[client]);
-	EmitAmbientSound(SOUND_IMPACT02, trsPos[client]);
-	
-	/* Laser effect */
-	CreateLaserEffect(client, 80, 80, 230, 230, 6.0, 1.0, VARTICAL);
-	ShowParticle(trsPos[client], PARTICLE_FIREBLUE01, 0.7);
-	ShowParticle(trsPos[client], PARTICLE_FIREBLUE02, 0.7);
-	TE_SetupBeamRingPoint(trsPos[client], 10.0, GetConVarFloat(sm_satellite_radius_02),
-						g_BeamSprite, g_HaloSprite, 0, 10, 0.3, 10.0, 0.5,
-						{40, 40, 230, 230}, 400, 0);
-	TE_SendToAll();
-	
-	/* Freeze special infected and survivor in the radius */
-	for(int i = 1; i <= MaxClients; i ++)
-	{
-		if(!IsClientInGame(i))
-			continue;
-		GetClientEyePosition(i, pos);
-		if(GetVectorDistance(pos, trsPos[client]) < GetConVarFloat(sm_satellite_radius_02))
-		{
-			nofrezze[client] = 1;
-			if(GetClientTeam(i) == SURVIVOR && infiniteammo[client] == 0 && nofrezze[client] == 1)
-			{
-				FreezePlayer(i, pos, GetConVarFloat(sm_satellite_freeze_02));
-			}
-			else if(GetClientTeam(i) == INFECTED)
-			{
-				new EventEClassMag = GetEntData(i, MEspecialClassMag);
-				if(EventEClassMag <= 8)
-				FreezePlayer2(i, pos, GetConVarFloat(sm_satellite_freeze_02));
-			}
-		}
-	}
-	
-	/* Freeze infected in the radius */
-	decl MaxEntities, String:mName[64], Float:entPos[3];
-	
-	MaxEntities = GetMaxEntities();
-	for (new i = 1; i <= MaxEntities; i++)
-	{
-		if (IsValidEdict(i) && IsValidEntity(i))
-		{
-			GetEntPropString(i, Prop_Data, "m_ModelName", mName, sizeof(mName))
-			if (StrContains(mName, "infected") != -1)
-			{
-				GetEntPropVector(i, Prop_Send, "m_vecOrigin", entPos)
-				if (GetVectorDistance(trsPos[client], entPos) < GetConVarFloat(sm_satellite_radius_02))
-				{
-					EmitAmbientSound(SOUND_FREEZE, entPos, i, SNDLEVEL_RAIDSIREN);
-					TE_SetupGlowSprite(entPos, g_GlowSprite, 5.0, 3.0, 130);
-					TE_SendToAll();
-					DamageEffect2(i, 100.0);
-				}
-			}
-		}
-	}
-	/* Push away */
-	PushAway(client, GetConVarFloat(sm_satellite_force),
-			GetConVarFloat(sm_satellite_radius_02), 0.5);
-	
-	if(ticket[client] == 1)
-	{
-		raycount[client]++;
-		Bulletblock[client] = 1;
-		if(raycount[client] >= 3 && Bulletblock[client] == 1)
-		{
-			ticket[client] = 0;
-			raycount[client] = 0;
-			if(infiniteammo[client] == 0)
-			{
-			energy[client][MODE_BLIZZARD] -= GetConVarInt(sm_satellite_mlimit_02);
-			}
-			if(energy[client][MODE_BLIZZARD] <= 0)
-			{
-			energy[client][MODE_BLIZZARD] = 0;
-			}
-			return;
-		}
-		/* Set random offset position */
-		MoveTracePosition(client, 50, 150);
-		CreateTimer(0.17, SatelliteTimer, client);
-	}
-}
-
-public Inferno(client)
-{
-	decl Float:pos[3];
-	
-	/* Emit impact sound */
-	EmitAmbientSound(SOUND_IMPACT01, trsPos[client]);
-	EmitAmbientSound(SOUND_IMPACT03, trsPos[client]);
-	
-	/* Laser effect */
-	CreateLaserEffect(client, 230, 40, 40, 230, 6.0, 1.0, VARTICAL);
-	ShowParticle(trsPos[client], PARTICLE_FIRE01, 3.0);
-	ShowParticle(trsPos[client], PARTICLE_FIRE02, 3.0);
-	
-	/* Ignite special infected and survivor in the radius */
-	for(int i = 1; i <= MaxClients; i ++)
-	{
-		if(!IsClientInGame(i))
-			continue;
-		GetClientEyePosition(i, pos);
-		if(GetVectorDistance(pos, trsPos[client]) < GetConVarFloat(sm_satellite_radius_03))
-		{
-			if(GetClientTeam(i) == SURVIVOR)
-			{
-				ScreenFade(i, 200, 0, 0, 150, 80, 1);
-				DamageEffect(i, 5.0);
-			}
-			else if(GetClientTeam(i) == INFECTED)
-			{
-				IgniteEntity(i, 10.0);
-				DamageEffect2(i, GetConVarFloat(sm_satellite_damage_03));
-			}
-		}
-	}
-	
-	/* Ignite infected in the radius */
-	decl MaxEntities, String:mName[64], Float:entPos[3];
-	
-	MaxEntities = GetMaxEntities();
-	for (new i = 1; i <= MaxEntities; i++)
-	{
-		if (IsValidEdict(i) && IsValidEntity(i))
-		{
-			GetEntPropString(i, Prop_Data, "m_ModelName", mName, sizeof(mName))
-			if (StrContains(mName, "infected") != -1)
-			{
-				GetEntPropVector(i, Prop_Send, "m_vecOrigin", entPos)
-				entPos[2] += 50;
-				if (GetVectorDistance(trsPos[client], entPos) < GetConVarFloat(sm_satellite_radius_03))
-				{
-					IgniteEntity(i, 10.0);
-					DamageEffect2(i, 50.0);
-				}
-			}
-		}
-	}
-	/* Push away */
-	PushAway(client, GetConVarFloat(sm_satellite_force),
-			GetConVarFloat(sm_satellite_radius_03), 0.5);
-	
-	if(ticket[client] == 1)
-	{
-		raycount[client]++;
-		Bulletblock[client] = 1;
-		if(raycount[client] >= 3 && Bulletblock[client] == 1)
-		{
-			ticket[client] = 0;
-			raycount[client] = 0;
-			if(infiniteammo[client] == 0)
-			{
-				energy[client][MODE_INFERNO] -= GetConVarInt(sm_satellite_mlimit_03);
-			}
-			if(energy[client][MODE_INFERNO] <= 0)
-			{
-				energy[client][MODE_INFERNO] = 0;
-			}
-			return;
-		}
-		/* Set random offset position */
-		MoveTracePosition(client, 50, 150);
-		CreateTimer(0.17, SatelliteTimer, client);
-	}
-}
-
-public Action:DefrostPlayer(Handle:timer, any:entity)
-{
-	if(IsValidEdict(entity) && IsValidEntity(entity))
-	{
-		decl Float:entPos[3];
-		GetEntPropVector(entity, Prop_Send, "m_vecOrigin", entPos);
-		EmitAmbientSound(SOUND_DEFROST, entPos, entity, SNDLEVEL_RAIDSIREN);
-		SetEntityMoveType(entity, MOVETYPE_WALK);
-		SetEntityRenderColor(entity, 255, 255, 255, 255);
-		ScreenFade(entity, 0, 0, 0, 0, 0, 1);
-		freeze[entity] = OFF;
-	}
-}
-
-public Action:DeletePushForce(Handle:timer, any:ent)
-{
-	if (IsValidEntity(ent))
-	{
-		decl String:classname[64];
-		GetEdictClassname(ent, classname, sizeof(classname));
-		if (StrEqual(classname, "point_push", false))
-		{
-			AcceptEntityInput(ent, "Disable");
-			AcceptEntityInput(ent, "Kill"); 
-			RemoveEdict(ent);
-		}
-	}
-}
-
-/******************************************************
-*	TE functions
-*******************************************************/
-public GetTracePosition(client)
-{
-	decl Float:myPos[3], Float:myAng[3], Float:tmpPos[3], Float:entPos[3];
-	
-	GetClientEyePosition(client, myPos);
-	GetClientEyeAngles(client, myAng);
-	new Handle:trace = TR_TraceRayFilterEx(myPos, myAng, CONTENTS_SOLID|CONTENTS_MOVEABLE, RayType_Infinite, TraceEntityFilterPlayer, client);
-	if(TR_DidHit(trace))
-	{
-		tEntity = TR_GetEntityIndex(trace);
-		GetEntPropVector(tEntity, Prop_Send, "m_vecOrigin", entPos);
-		TR_GetEndPosition(tmpPos, trace);
-	}
-	CloseHandle(trace);
-	for(new i = 0; i < 3; i++)
-		trsPos[client][i] = tmpPos[i];
-}
-
-public MoveTracePosition(client, min, max)
-{
-	new point = GetRandomInt(1, 4);
-	new xOffset = GetRandomInt(min, max);
-	new yOffset = GetRandomInt(min, max);
-	
-	if(point == 1)
-	{
-		trsPos[client][0] -= xOffset;
-		trsPos[client][1] += yOffset;
-	}
-	else if(point == 2)
-	{
-		trsPos[client][0] += xOffset;
-		trsPos[client][1] += yOffset;
-	}
-	else if(point == 3)
-	{
-		trsPos[client][0] -= xOffset;
-		trsPos[client][1] -= yOffset;
-	}
-	else if(point == 4)
-	{
-		trsPos[client][0] += xOffset;
-		trsPos[client][1] -= yOffset;
-	}
+    int point = GetRandomInt(1, 4);
+    int xOffset = GetRandomInt(min, max);
+    int yOffset = GetRandomInt(min, max);
+    
+    if(point == 1)
+    {
+        g_spSatellitePlayers[client].tracePosition[0] -= xOffset;
+        g_spSatellitePlayers[client].tracePosition[1] += yOffset;
+    }
+    else if(point == 2)
+    {
+        g_spSatellitePlayers[client].tracePosition[0] += xOffset;
+        g_spSatellitePlayers[client].tracePosition[1] += yOffset;
+    }
+    else if(point == 3)
+    {
+        g_spSatellitePlayers[client].tracePosition[0] -= xOffset;
+        g_spSatellitePlayers[client].tracePosition[1] -= yOffset;
+    }
+    else if(point == 4)
+    {
+        g_spSatellitePlayers[client].tracePosition[0] += xOffset;
+        g_spSatellitePlayers[client].tracePosition[1] -= yOffset;
+    }
 }
 
 public bool TraceEntityFilterPlayer(int entity, int contentsMask)
 {
-	return entity > MaxClients || !entity;
+    return entity > MaxClients || !entity;
 }
 
-public CreateLaserEffect(client, colRed, colGre, colBlu, alpha, Float:width, Float:duration, mode)
+public void CreateLaserEffect(int client, int colRed, int colGre, int colBlu, int alpha, float width, float duration, int mode)
 {
-	decl color[4];
-	color[0] = colRed;
-	color[1] = colGre;
-	color[2] = colBlu;
-	color[3] = alpha;
-	
-	if(mode == NORMAL)
-	{
-		/* Show laser between user and impact position */
-		decl Float:myPos[3];
-		
-		GetClientEyePosition(client, myPos);
-		TE_SetupBeamPoints(myPos, trsPos[client], g_BeamSprite, 0, 0, 0,
-							duration, width, width, 1, 0.0, color, 0);
-		TE_SendToAll();
-	}
-	else if(mode == VARTICAL)
-	{
-		/* Show laser like lightning bolt */
-		decl Float:lchPos[3];
-		
-		for(new i = 0; i < 3; i++)
-			lchPos[i] = trsPos[client][i];
-		lchPos[2] += GetConVarInt(sm_satellite_height);
-		TE_SetupBeamPoints(lchPos, trsPos[client], g_BeamSprite, 0, 0, 0,
-							duration, width, width, 1, 2.0, color, 0);
-		TE_SendToAll();
-		TE_SetupGlowSprite(lchPos, g_GlowSprite, 1.5, 2.8, 230);
-		TE_SendToAll();
-	}
+    int color[4];
+    color[0] = colRed;
+    color[1] = colGre;
+    color[2] = colBlu;
+    color[3] = alpha;
+    
+    if(mode == LASER_EFFECT_TYPE_NORMAL)
+    {
+        /* Show laser between user and impact position */
+        float myPos[3];
+        
+        GetClientEyePosition(client, myPos);
+        TE_SetupBeamPoints(myPos, g_spSatellitePlayers[client].tracePosition, g_BeamSprite, 0, 0, 0,
+                            duration, width, width, 1, 0.0, color, 0);
+        TE_SendToAll();
+    }
+    else if(mode == LASER_EFFECT_TYPE_VERTICAL)
+    {
+        /* Show laser like lightning bolt */
+        float lchPos[3];
+        
+        for(int i = 0; i < 3; i++)
+            lchPos[i] = g_spSatellitePlayers[client].tracePosition[i];
+        lchPos[2] += GetConVarInt(g_psPluginSettings.cvars.laserVisualHeight);
+        TE_SetupBeamPoints(lchPos, g_spSatellitePlayers[client].tracePosition, g_BeamSprite, 0, 0, 0,
+                            duration, width, width, 1, 2.0, color, 0);
+        TE_SendToAll();
+        TE_SetupGlowSprite(lchPos, g_GlowSprite, 1.5, 2.8, 230);
+        TE_SendToAll();
+    }
 }
 
-public CreateRingEffect(client, colRed, colGre, colBlu, alpha, Float:width, Float:duration)
+public void CreateRingEffect(int client, int colRed, int colGre, int colBlu, int alpha, float width, float duration)
 {
-	decl color[4];
-	color[0] = colRed;
-	color[1] = colGre;
-	color[2] = colBlu;
-	color[3] = alpha;
-	
-	TE_SetupBeamRingPoint(trsPos[client], 300.0, 10.0, g_BeamSprite,
-						g_HaloSprite, 0, 10, 1.2, 4.0, 0.5,
-						{150, 150, 230, 230}, 80, 0);
-	TE_SendToAll();
+    int color[4];
+    color[0] = colRed;
+    color[1] = colGre;
+    color[2] = colBlu;
+    color[3] = alpha;
+    
+    TE_SetupBeamRingPoint(g_spSatellitePlayers[client].tracePosition, 300.0, 10.0, g_BeamSprite,
+                        g_HaloSprite, 0, 10, 1.2, 4.0, 0.5,
+                        {150, 150, 230, 230}, 80, 0);
+    TE_SendToAll();
 }
 
-public CreateSparkEffect(client, size, length)
+public void CreateSparkEffect(int client, int size, int length)
 {
-	decl Float:spkVec[3];
-	spkVec[0]=GetRandomFloat(-1.0, 1.0);
-	spkVec[1]=GetRandomFloat(-1.0, 1.0);
-	spkVec[2]=GetRandomFloat(-1.0, 1.0);
-	
-	TE_SetupSparks(trsPos[client], spkVec, size, length);
-	TE_SendToAll();
-}
-
-/******************************************************
-*	Other functions
-*******************************************************/
-
-stock DamageEffect(target, Float:damage)
-{
-	/* Admin only in 2, no damage */
-	if(IsClientAdmin(target) && GetConVarInt(sm_satellite_adminonly) > 0)
-	{
-		noprotect[target] = 0;
-	}
-	
-	if (noprotect[target] == 1)
-	{
-	decl String:tName[20];
-	Format(tName, 20, "target%d", target);
-	new pointHurt = CreateEntityByName("point_hurt");
-	DispatchKeyValue(target, "targetname", tName);
-	DispatchKeyValueFloat(pointHurt, "Damage", damage);
-	DispatchKeyValue(pointHurt, "DamageTarget", tName);
-	DispatchKeyValue(pointHurt, "DamageType", "65536");
-	DispatchSpawn(pointHurt);
-	AcceptEntityInput(pointHurt, "Hurt");
-	AcceptEntityInput(pointHurt, "Kill");
-	}
-	noprotect[target] = 0;
-}
-
-stock DamageEffect2(target, Float:damage)
-{
-	decl String:tName[20];
-	Format(tName, 20, "target%d", target);
-	new pointHurt = CreateEntityByName("point_hurt");
-	DispatchKeyValue(target, "targetname", tName);
-	DispatchKeyValueFloat(pointHurt, "Damage", damage);
-	DispatchKeyValue(pointHurt, "DamageTarget", tName);
-	DispatchKeyValue(pointHurt, "DamageType", "65536");
-	DispatchSpawn(pointHurt);
-	AcceptEntityInput(pointHurt, "Hurt");
-	AcceptEntityInput(pointHurt, "Kill");
-}
-
-public PushAway(client, Float:force, Float:radius, Float:duration)
-{
-	new push = CreateEntityByName("point_push");
-	DispatchKeyValueFloat (push, "magnitude", force);
-	DispatchKeyValueFloat (push, "radius", radius);
-	SetVariantString("spawnflags 24");
-	AcceptEntityInput(push, "AddOutput");
-	DispatchSpawn(push);
-	TeleportEntity(push, trsPos[client], NULL_VECTOR, NULL_VECTOR);
-	AcceptEntityInput(push, "Enable", -1, -1);
-	CreateTimer(duration, DeletePushForce, push);
-}
-
-public LittleFlower(client, type)
-{
-	nodamage = true;
-	noprotect[client] = 1;
-	
-	/* Admin only in 2, no damage */
-	if(IsClientAdmin(client) && GetConVarInt(sm_satellite_adminonly) > 0)
-	{
-		noprotect[client] = 0;
-	}
-	
-	/* Cause fire(type=0) or explosion(type=1) */
-	new entity = CreateEntityByName("prop_physics");
-	if (IsValidEntity(entity))
-	{
-		trsPos[client][2] += 20;
-		if (type == 0)
-			/* fire */
-			DispatchKeyValue(entity, "model", ENTITY_GASCAN);
-		else
-			/* explode */
-			DispatchKeyValue(entity, "model", ENTITY_PROPANE);
-		DispatchSpawn(entity);
-		SetEntData(entity, GetEntSendPropOffs(entity, "m_CollisionGroup"), 1, 1, true);
-		TeleportEntity(entity, trsPos[client], NULL_VECTOR, NULL_VECTOR);
-		AcceptEntityInput(entity, "break");
-	}
-	nodamage = false;
-	noprotect[client] = 0;
-}
-
-public ScreenFade(target, red, green, blue, alpha, duration, type)
-{
-	new Handle:msg = StartMessageOne("Fade", target);
-	BfWriteShort(msg, 500);
-	BfWriteShort(msg, duration);
-	if (type == 0)
-		BfWriteShort(msg, (0x0002 | 0x0008));
-	else
-		BfWriteShort(msg, (0x0001 | 0x0010));
-	BfWriteByte(msg, red);
-	BfWriteByte(msg, green);
-	BfWriteByte(msg, blue);
-	BfWriteByte(msg, alpha);
-	EndMessage();
-}
-
-public FreezePlayer(entity, Float:pos[3], Float:time)
-{
-	if(nofrezze[entity] == 1)
-	{
-	SetEntityMoveType(entity, MOVETYPE_NONE);
-	SetEntityRenderColor(entity, 0, 128, 255, 135);
-	ScreenFade(entity, 0, 128, 255, 192, 2000, 1);
-	EmitAmbientSound(SOUND_FREEZE, pos, entity, SNDLEVEL_RAIDSIREN);
-	TE_SetupGlowSprite(pos, g_GlowSprite, time, 0.5, 130);
-	TE_SendToAll();
-	freeze[entity] = ON;
-	CreateTimer(time, DefrostPlayer, entity);
-	}
-	nofrezze[entity] = 0;
-}
-
-public FreezePlayer2(entity, Float:pos[3], Float:time)
-{
-	SetEntityMoveType(entity, MOVETYPE_NONE);
-	SetEntityRenderColor(entity, 0, 128, 255, 135);
-	ScreenFade(entity, 0, 128, 255, 192, 2000, 1);
-	EmitAmbientSound(SOUND_FREEZE, pos, entity, SNDLEVEL_RAIDSIREN);
-	TE_SetupGlowSprite(pos, g_GlowSprite, time, 0.5, 130);
-	TE_SendToAll();
-	freeze[entity] = ON;
-	CreateTimer(time, DefrostPlayer, entity);
+    float spkVec[3];
+    spkVec[0]=GetRandomFloat(-1.0, 1.0);
+    spkVec[1]=GetRandomFloat(-1.0, 1.0);
+    spkVec[2]=GetRandomFloat(-1.0, 1.0);
+    
+    TE_SetupSparks(g_spSatellitePlayers[client].tracePosition, spkVec, size, length);
+    TE_SendToAll();
 }
 
 /******************************************************
-*	Particle control functions
+*    Other functions
 *******************************************************/
-public ShowParticle(Float:pos[3], String:particlename[], Float:time)
-{
-	/* Show particle effect you like */
-	new particle = CreateEntityByName("info_particle_system");
-	if (IsValidEdict(particle))
-	{
-		TeleportEntity(particle, pos, NULL_VECTOR, NULL_VECTOR);
-		DispatchKeyValue(particle, "effect_name", particlename);
-		DispatchKeyValue(particle, "targetname", "particle");
-		DispatchSpawn(particle);
-		ActivateEntity(particle);
-		AcceptEntityInput(particle, "start");
-		CreateTimer(time, DeleteParticles, particle);
-	}  
+
+bool checkSatelliteCanShoot(int client) {
+
+    switch(g_spSatellitePlayers[client].currentAmmoType) {
+        case AMMO_TYPE_ALL, AMMO_TYPE_IDLE: {
+            return false;
+        }
+
+        case AMMO_TYPE_BLIZZARD: {
+            if(!isSatelliteEnabled(AMMO_TYPE_BLIZZARD)) {
+                return false;
+            }
+
+            if(g_spSatellitePlayers[client].ammoBlizzard.isAmmoEmpty()) {
+                return false;
+            }
+        }
+
+        case AMMO_TYPE_INFERNO: {
+            if(!isSatelliteEnabled(AMMO_TYPE_BLIZZARD)) {
+                return false;
+            }
+
+            if(g_spSatellitePlayers[client].ammoInferno.isAmmoEmpty()) {
+                return false;
+            }
+        }
+
+        case AMMO_TYPE_JUDGEMENT: {
+            if(!isSatelliteEnabled(AMMO_TYPE_BLIZZARD)) {
+                return false;
+            }
+            
+            if(g_spSatellitePlayers[client].ammoJudgement.isAmmoEmpty()) {
+                return false;
+            }
+        }
+    }
+    return true;
 }
 
-public Action:DeleteParticles(Handle:timer, any:particle)
+void getAmmoName(char[] buffer, int bufferSize, int ammoType, int client) {
+    SetGlobalTransTarget(client);
+    switch(ammoType) {
+        case AMMO_TYPE_BLIZZARD: {
+            Format(buffer, bufferSize, "%t", "sc ammo name blizzard");
+        }
+        case AMMO_TYPE_INFERNO: {
+            Format(buffer, bufferSize, "%t", "sc ammo name inferno");
+        }
+        case AMMO_TYPE_JUDGEMENT: {
+            Format(buffer, bufferSize, "%t", "sc ammo name judgement");
+        }
+        case AMMO_TYPE_IDLE: {
+            Format(buffer, bufferSize, "%t", "sc ammo name idle");
+        }
+        default: {
+            Format(buffer, bufferSize, "%t", "sc ammo name invalid");
+        }
+    }
+}
+
+void printAmmoTypeChangeMessage(int client, int ammoType) {
+    char ammoName[48];
+    getAmmoName(ammoName, sizeof(ammoName), ammoType, client);
+
+    PrintHintText(client, "%t %s", "sc ammo type change", ammoName);
+}
+
+void printEmptyMessage(int client, int ammoType) {
+    char ammoName[48];
+    getAmmoName(ammoName, sizeof(ammoName), ammoType, client);
+
+    PrintHintText(client, "%t", "sc ammo now empty", ammoName);
+}
+
+void warnEmptyAmmo(int client, int ammoType) {
+    char ammoName[48];
+    getAmmoName(ammoName, sizeof(ammoName), ammoType, client);
+
+    PrintHintText(client, "%t", "sc ammo empty", ammoName);
+    g_spSatellitePlayers[client].currentAmmoType = AMMO_TYPE_IDLE;
+}
+
+bool isSatelliteEnabled(int ammoType) {
+    return g_ssSatelliteSettings[ammoType].values.enabled;
+}
+
+stock int getSatelliteUsageResetTiming(int ammoType) {
+    if(g_psPluginSettings.values.globalUsageResetTiming) {
+        return g_psPluginSettings.values.usageResetTiming; 
+    }
+
+    return g_ssSatelliteSettings[ammoType].values.usageResetTiming;
+}
+
+stock float getClientSatelliteBurstDelay(int client) {
+    return getSatelliteBurstDelay(g_spSatellitePlayers[client].currentAmmoType);
+}
+
+stock float getSatelliteBurstDelay(int ammoType) {
+    if(g_psPluginSettings.values.globalBurstDelay)
+        return g_psPluginSettings.values.burstDelay;
+    
+    return g_ssSatelliteSettings[ammoType].values.burstDelay;
+}
+
+
+stock float getClientSatellitePushForce(int client) {
+    return getSatellitePushForce(g_spSatellitePlayers[client].currentAmmoType);
+}
+
+stock float getSatellitePushForce(int ammoType) {
+    if(g_psPluginSettings.values.globalPushForce)
+        return g_psPluginSettings.values.pushForce;
+    
+    return g_ssSatelliteSettings[ammoType].values.pushForce;
+}
+
+
+stock float getClientSatelliteRadius(int client) {
+    return getSatelliteRadius(g_spSatellitePlayers[client].currentAmmoType);
+}
+
+stock float getSatelliteRadius(int ammoType) {
+    return g_ssSatelliteSettings[ammoType].values.radius;
+}
+
+
+stock float getClientSatelliteDamage(int client) {
+    return getSatelliteDamage(g_spSatellitePlayers[client].currentAmmoType);
+}
+
+stock float getSatelliteDamage(int ammoType) {
+    return g_ssSatelliteSettings[ammoType].values.damage;
+}
+
+
+stock float getClientSatelliteCooldown(int client) {
+    return getSatelliteCooldown(g_spSatellitePlayers[client].currentAmmoType);
+}
+
+stock float getSatelliteCooldown(int ammoType) {
+    return g_ssSatelliteSettings[ammoType].values.cooldown;
+}
+
+stock int getSatelliteMaxUses(int ammoType) {
+    return g_ssSatelliteSettings[ammoType].values.maxUses;
+}
+
+
+stock bool clientSatelliteHasFriendlyFire(int client) {
+    return satelliteHasFriendlyFire(g_spSatellitePlayers[client].currentAmmoType);
+}
+
+stock bool satelliteHasFriendlyFire(int ammoType) {
+    if(g_psPluginSettings.values.globalFriendlyFire) 
+        return g_psPluginSettings.values.friendlyFire;
+    
+    return g_ssSatelliteSettings[ammoType].values.hasFriendlyFire;
+}
+
+stock void DamageEffect(int target, float damage)
 {
-	/* Delete particle */
+    char tName[20];
+    Format(tName, 20, "target%d", target);
+    int pointHurt = CreateEntityByName("point_hurt");
+    DispatchKeyValue(target, "targetname", tName);
+    DispatchKeyValueFloat(pointHurt, "Damage", damage);
+    DispatchKeyValue(pointHurt, "DamageTarget", tName);
+    DispatchKeyValue(pointHurt, "DamageType", "65536");
+    DispatchSpawn(pointHurt);
+    AcceptEntityInput(pointHurt, "Hurt");
+    AcceptEntityInput(pointHurt, "Kill");
+
+}
+
+public void PushAway(int client, float force, float radius, float duration)
+{
+    int push = CreateEntityByName("point_push");
+    DispatchKeyValueFloat (push, "magnitude", force);
+    DispatchKeyValueFloat (push, "radius", radius);
+    SetVariantString("spawnflags 24");
+    AcceptEntityInput(push, "AddOutput");
+    DispatchSpawn(push);
+    TeleportEntity(push, g_spSatellitePlayers[client].tracePosition, NULL_VECTOR, NULL_VECTOR);
+    AcceptEntityInput(push, "Enable", -1, -1);
+    CreateTimer(duration, DeletePushForce, push);
+}
+
+public void LittleFlower(int client, int explosionType, int ammoType)
+{
+    /* Cause fire(type=0) or explosion(type=1) */
+    int entity = CreateEntityByName("prop_physics");
+    if (IsValidEntity(entity))
+    {
+        g_spSatellitePlayers[client].tracePosition[2] += 20;
+
+        switch(explosionType) {
+            case EXPLOSION_TYPE_MOLOTOV: {
+                /* fire */
+                DispatchKeyValue(entity, "model", ENTITY_GASCAN);
+            }
+
+            case EXPLOSION_TYPE_EXPLODE: {
+                /* explode */
+                DispatchKeyValue(entity, "model", ENTITY_PROPANE);
+            }
+
+            default: {
+                RemoveEntity(entity);
+                return;
+            }
+        }
+
+        char ammoTypeStr[1];
+        Format(ammoTypeStr, sizeof(ammoTypeStr), "%d", ammoType);
+        DispatchKeyValue(entity, "targetname", ammoTypeStr);
+        DispatchSpawn(entity);
+        SetEntData(entity, GetEntSendPropOffs(entity, "m_CollisionGroup"), 1, 1, true);
+        TeleportEntity(entity, g_spSatellitePlayers[client].tracePosition, NULL_VECTOR, NULL_VECTOR);
+        AcceptEntityInput(entity, "break");
+    }
+}
+
+public void ScreenFade(int target, int red, int green, int blue, int alpha, int duration, int type)
+{
+    Handle msg = StartMessageOne("Fade", target);
+    BfWriteShort(msg, 500);
+    BfWriteShort(msg, duration);
+    if (type == 0)
+        BfWriteShort(msg, (0x0002 | 0x0008));
+    else
+        BfWriteShort(msg, (0x0001 | 0x0010));
+    BfWriteByte(msg, red);
+    BfWriteByte(msg, green);
+    BfWriteByte(msg, blue);
+    BfWriteByte(msg, alpha);
+    EndMessage();
+}
+
+public void FreezePlayer(int entity, float pos[3], float time)
+{
+    SetEntityMoveType(entity, MOVETYPE_NONE);
+    SetEntityRenderColor(entity, 0, 128, 255, 135);
+    ScreenFade(entity, 0, 128, 255, 192, 2000, 1);
+    EmitAmbientSound(SOUND_FREEZE, pos, entity, SNDLEVEL_RAIDSIREN);
+    TE_SetupGlowSprite(pos, g_GlowSprite, time, 0.5, 130);
+    TE_SendToAll();
+    g_spSatellitePlayers[entity].isActionBlocked = true;
+    CreateTimer(time, DefrostPlayer, entity);
+}
+
+/******************************************************
+*    Particle control functions
+*******************************************************/
+public void ShowParticle(float pos[3], char[] particlename, float time)
+{
+    /* Show particle effect you like */
+    int particle = CreateEntityByName("info_particle_system");
+    if (IsValidEdict(particle))
+    {
+        TeleportEntity(particle, pos, NULL_VECTOR, NULL_VECTOR);
+        DispatchKeyValue(particle, "effect_name", particlename);
+        DispatchKeyValue(particle, "targetname", "particle");
+        DispatchSpawn(particle);
+        ActivateEntity(particle);
+        AcceptEntityInput(particle, "start");
+        CreateTimer(time, DeleteParticles, particle);
+    }  
+}
+
+public Action DeleteParticles(Handle timer, any particle)
+{
+    /* Delete particle */
     if (IsValidEntity(particle))
-	{
-		new String:classname[64];
-		GetEdictClassname(particle, classname, sizeof(classname));
-		if (StrEqual(classname, "info_particle_system", false))
+    {
+        char classname[64];
+        GetEdictClassname(particle, classname, sizeof(classname));
+        if (StrEqual(classname, "info_particle_system", false))
             RemoveEdict(particle);
-	}
+    }
+    return Plugin_Handled;
 }
 
-public PrecacheParticle(String:particlename[])
+public void PrecacheParticle(char[] particlename)
 {
-	/* Precache particle */
-	new particle = CreateEntityByName("info_particle_system");
-	if (IsValidEdict(particle))
-	{
-		DispatchKeyValue(particle, "effect_name", particlename);
-		DispatchKeyValue(particle, "targetname", "particle");
-		DispatchSpawn(particle);
-		ActivateEntity(particle);
-		AcceptEntityInput(particle, "start");
-		CreateTimer(0.01, DeleteParticles, particle);
-	}  
+    /* Precache particle */
+    int particle = CreateEntityByName("info_particle_system");
+    if (IsValidEdict(particle))
+    {
+        DispatchKeyValue(particle, "effect_name", particlename);
+        DispatchKeyValue(particle, "targetname", "particle");
+        DispatchSpawn(particle);
+        ActivateEntity(particle);
+        AcceptEntityInput(particle, "start");
+        CreateTimer(0.01, DeleteParticles, particle);
+    }  
 }
 
-public Action OnTakeDamageMag(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
-{
-	if (noprotect[victim] == 0 && nodamage == true && bIsValidClient(victim) && damage > 0.0)
-	{
-		char sExplosiveTypes[8];
-		sm_satellite_friendly.GetString(sExplosiveTypes, sizeof(sExplosiveTypes));
-		if ((damagetype & DMG_BLAST || damagetype & DMG_BLAST_SURFACE || damagetype & DMG_AIRBOAT || damagetype & DMG_PLASMA) && ((bIsBlocked(sExplosiveTypes, "1", "1"))))
-		{
-			damage = 0.0;
-			return Plugin_Handled;
-		}
-	}
-	return Plugin_Continue;
-}
 
 /******************************************************
-*	Display hint functions
+*    Display hint functions
 *******************************************************/
-public Action:DisplayInstructorHint(Handle:timer, any:client)
+public Action DisplayInstructorHint(Handle  timer, any client)
 {
-	decl entity, String:tName[32], Handle:hRemovePack;
-	
-	entity = CreateEntityByName("env_instructor_hint");
-	FormatEx(tName, sizeof(tName), "hint%d", client);
-	
-	DispatchKeyValue(client, "targetname", tName);
-	DispatchKeyValue(entity, "hint_target", tName);
-	DispatchKeyValue(entity, "hint_timeout", "5");
-	DispatchKeyValue(entity, "hint_range", "0.01");
-	DispatchKeyValue(entity, "hint_color", "255 255 255");
-	DispatchKeyValue(entity, "hint_icon_onscreen", "use_binding");
-	DispatchKeyValue(entity, "hint_caption", "Change mode");
-	DispatchKeyValue(entity, "hint_binding", "+zoom");
-	DispatchSpawn(entity);
-	AcceptEntityInput(entity, "ShowHint");
-	
-	hRemovePack = CreateDataPack();
-	WritePackCell(hRemovePack, client);
-	WritePackCell(hRemovePack, entity);
-	CreateTimer(5.0, RemoveInstructorHint, hRemovePack);
-}
-	
-public Action:RemoveInstructorHint(Handle:timer, Handle:hPack)
-{
-	decl entity, client
-	
-	ResetPack(hPack, false)
-	client = ReadPackCell(hPack)
-	entity = ReadPackCell(hPack)
-	CloseHandle(hPack)
-	
-	if (!client || !IsClientInGame(client))
-		return;
-	
-	if (IsValidEntity(entity))
-			RemoveEdict(entity)
-	
-	ClientCommand(client, "gameinstructor_enable 0")
-	DispatchKeyValue(client, "targetname", "")
-}
+    int entity;
+    char tName[32];
+    Handle hRemovePack;
+    
+    entity = CreateEntityByName("env_instructor_hint");
+    FormatEx(tName, sizeof(tName), "hint%d", client);
+    
+    DispatchKeyValue(client, "targetname", tName);
+    DispatchKeyValue(entity, "hint_target", tName);
+    DispatchKeyValue(entity, "hint_timeout", "5");
+    DispatchKeyValue(entity, "hint_range", "0.01");
+    DispatchKeyValue(entity, "hint_color", "255 255 255");
+    DispatchKeyValue(entity, "hint_icon_onscreen", "use_binding");
 
-stock bool bIsBlocked(char[] type, char[] value, char[] value2)
-{
-	return bIsL4D2Game() ? StrContains(type, value) != -1 : StrContains(type, value2) != -1;
-}
-stock bool bIsL4D2Game()
-{
-	return GetEngineVersion() == Engine_Left4Dead2;
-}
-stock bool bIsValidClient(int client)
-{
-	return client > 0 && client <= MaxClients && IsClientInGame(client) && !IsClientInKickQueue(client);
-}
-stock int IsClientAdmin(client)
-{
-	new AdminId:AID = GetUserAdmin(client);
-	if(AID == INVALID_ADMIN_ID && GetConVarInt(sm_satellite_adminonly) != 2)
-		return 0;
-	
-	return GetAdminImmunityLevel(AID);
-}
 
-/******************************************************
-*	EOF
-*******************************************************/
+    char infoText[16];
+    Format(infoText, sizeof(infoText), "%t", "sc info change ammo type");
+
+    DispatchKeyValue(entity, "hint_caption", infoText);
+    DispatchKeyValue(entity, "hint_binding", "+zoom");
+    DispatchSpawn(entity);
+    AcceptEntityInput(entity, "ShowHint");
+    
+    hRemovePack = CreateDataPack();
+    WritePackCell(hRemovePack, client);
+    WritePackCell(hRemovePack, entity);
+    CreateTimer(5.0, RemoveInstructorHint, hRemovePack);
+    return Plugin_Continue;
+}
+    
+public Action RemoveInstructorHint(Handle timer, Handle hPack)
+{
+    int entity, client;
+    
+    ResetPack(hPack, false);
+    client = ReadPackCell(hPack);
+    entity = ReadPackCell(hPack);
+    CloseHandle(hPack);
+    
+    if (!client || !IsClientInGame(client))
+        return Plugin_Continue;
+    
+    if (IsValidEntity(entity))
+            RemoveEdict(entity);
+    
+    DispatchKeyValue(client, "targetname", "");
+    return Plugin_Handled;
+}

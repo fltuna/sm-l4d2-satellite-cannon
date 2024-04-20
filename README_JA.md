@@ -1,27 +1,27 @@
-[英語] [[日本語](/README_JA.md)]
+[[English](/README.md)] [日本語]
 
 # Satellite Cannon
 
-## Difference between my fork and original
+## 元のプラグインとの違い
 
-### Code refactor
+### リファクタリング
 
-- Rewrite with new syntax
-- Code is more readable (Maybe)
+- 新しいSourceModの記法で書き直した
+- コードが見やすくなった(多分)
 
-### Translations support
+### 翻訳サポート
 
 - Menu
 - Hint text
 - Instructor hint
 
-### New abilities
+### 新アビリティ
 
-- Todo
+- 多分作る
 
-### More customizable
+### より沢山のカスタマイズ項目
 
-These settings are able to set individually or globally.
+以下の設定は個別/全体で設定できます。
 
 - Push force
 - Radius
@@ -35,7 +35,7 @@ These settings are able to set individually or globally.
 
 ## CVars
 
-### Global settings
+### 全般
 
 - `sm_satellite_enable` - 0:OFF 1:ON
 - `sm_satellite_laser_visual_height` - Height of launching point visual laser.
@@ -47,11 +47,11 @@ These settings are able to set individually or globally.
 - `sm_satellite_friendly_fire_global` - Toggle global friendly fire. When set to 0 it uses individual push force based on satellite ammo settings.
 - `sm_satellite_usage_reset_timing` - When ammo will reset. | 1: Round start, 2: Map start, 4: Death | If you want to use multiple timings you can set the combined number. For example Round start and death is 5.
 
-### Individual settings
+### 個別
 
-All of individual settings is are only used when `sm_satellite_****_global` is 0 except ammo specific ,cooldown and damage.
+全ての個別の設定は `sm_satellite_****_global` が0である場合にのみ使用されます。ただし例外として、アビリティ固有, クールダウン, ダメージは個別に設定する必要があります。
 
-Please see configuration file to what settings available.
+詳細な内容はコンフィグを確認してください。
 
 - `sm_satellite_ammo_****_enable` - Toggles ammo type
 - `sm_satellite_ammo_****_damage` - Damage of cannon
@@ -63,20 +63,20 @@ Please see configuration file to what settings available.
 - `sm_satellite_ammo_****_push_force` - Push force of this cannon.
 - `sm_satellite_ammo_****_friendly_fire` - 0:OFF 1:ON.
 
-## Commands
+## コマンド
 
-- None
+- 無し
 
-## Original
+## オリジナル
 
-### Author
+### 作者
 - ztar
 
-### Plugin link
+### Pluginのリンク
 
 https://forums.alliedmods.net/showthread.php?p=1229450
 
 
-### Author's website
+### 作者のウェブサイト
 
 http://ztar.blog7.fc2.com
