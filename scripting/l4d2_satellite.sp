@@ -16,14 +16,6 @@
 #define SURVIVOR        2
 #define INFECTED        3
 
-
-/* Message */
-#define MESSAGE_EMPTY1    "ENERGY OUT"
-#define MESSAGE_SHIFT1    "YOU HAVE SWITCHED TO MODE \nJUDGEMENT"
-#define MESSAGE_SHIFT2    "YOU HAVE SWITCHED TO MODE \nBLIZZARD"
-#define MESSAGE_SHIFT3    "YOU HAVE SWITCHED TO MODE \nINFERNO"
-#define MESSAGE_SHIFT4    "YOU HAVE SWITCHED TO MODE \nNORMAL"
-
 /* Sound */
 #define SOUND_NEGATIVE    "npc/soldier1/misc18.wav"
 #define SOUND_SHOOT01    "npc/soldier1/misc17.wav"
@@ -279,6 +271,7 @@ enum struct SatelliteAmmo {
 
 enum struct SatellitePlayer {
     int currentAmmoType;
+    int lastAmmoType;
     bool isInCooldown;
     bool isMoveBlocked;
     bool isActionBlocked;
@@ -395,6 +388,7 @@ public void OnPluginStart() {
     g_ssSatelliteSettings[AMMO_TYPE_JUDGEMENT].cvars.addChangeHook(OnPluginSettingsUpdated);
     g_ssSatelliteSettings[AMMO_TYPE_JUDGEMENT].updateCache();
 
+    LoadTranslations("l4d2_satellite.phrases");
 
     HookEvent("weapon_fire", onWeaponFired);
     HookEvent("item_pickup", onItemPickUp);
@@ -586,10 +580,12 @@ public Action onWeaponFired(Handle event, const char[] name, bool dontBroadcast)
     if(g_spSatellitePlayers[attacker].currentAmmoType <= AMMO_TYPE_ALL)
         return Plugin_Continue;
 
-    if(!checkSatelliteCanShoot(attacker, g_spSatellitePlayers[attacker]))
+    if(!checkSatelliteCanShoot(attacker)) {
+        warnEmptyAmmo(attacker, g_spSatellitePlayers[attacker].currentAmmoType);
         return Plugin_Continue;
+    }
 
-    
+    g_spSatellitePlayers[attacker].lastAmmoType = g_spSatellitePlayers[attacker].currentAmmoType;
 
     /* Emit sound */
     int soundNo = GetRandomInt(1, 9);
@@ -612,6 +608,7 @@ public Action onWeaponFired(Handle event, const char[] name, bool dontBroadcast)
     /* Ready to launch */
     CreateTimer(0.2, TraceTimer, attacker);
     subtractSatelliteUses(attacker);
+    notifyWhenAmmoEmpty(attacker);
     
     /* Reload compulsorily */
     int wData = GetEntDataEnt2(attacker, g_hActiveWeapon);
@@ -675,17 +672,23 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 
 public void ChangeMode(int client)
 {
-    char mStrJud[64], mStrBli[64], mStrInf[64];
-    Format(mStrJud, sizeof(mStrJud), "MODE:    JUDGEMENT      (Energy: %d)", g_spSatellitePlayers[client].ammoJudgement.usesLeft);
-    Format(mStrBli, sizeof(mStrBli), "MODE:    BLIZZARD         (Energy: %d)", g_spSatellitePlayers[client].ammoBlizzard.usesLeft);
-    Format(mStrInf, sizeof(mStrInf), "MODE:    INFERNO           (Energy: %d)", g_spSatellitePlayers[client].ammoInferno.usesLeft);
+    char mStrJud[64], mStrBli[64], mStrInf[64], mStrIdle[64],_ammoName[32];
+
+    getAmmoName(_ammoName, sizeof(_ammoName), AMMO_TYPE_BLIZZARD, client);
+    Format(mStrBli, sizeof(mStrBli), "%s %t", _ammoName, "sc menu ammo left", g_spSatellitePlayers[client].ammoBlizzard.usesLeft);
+    getAmmoName(_ammoName, sizeof(_ammoName), AMMO_TYPE_INFERNO, client);
+    Format(mStrInf, sizeof(mStrInf), "%s %t", _ammoName, "sc menu ammo left", g_spSatellitePlayers[client].ammoInferno.usesLeft);
+    getAmmoName(_ammoName, sizeof(_ammoName), AMMO_TYPE_JUDGEMENT, client);
+    Format(mStrJud, sizeof(mStrJud), "%s %t", _ammoName, "sc menu ammo left", g_spSatellitePlayers[client].ammoJudgement.usesLeft);
+    getAmmoName(_ammoName, sizeof(_ammoName), AMMO_TYPE_IDLE, client);
+    Format(mStrIdle, sizeof(mStrIdle), "%s", _ammoName);
     
     Handle menu = CreateMenu(ChangeModeMenu);
-    SetMenuTitle(menu, "*** Operation: Satellite System ***\n_______________________________________\n");
-    AddMenuItem(menu, "0", mStrJud);
-    AddMenuItem(menu, "1", mStrBli);
-    AddMenuItem(menu, "2", mStrInf);
-    AddMenuItem(menu, "3", "NORMAL");
+    SetMenuTitle(menu, "%t", "sc menu title");
+    AddMenuItem(menu, "ammo_blizzard", mStrBli);
+    AddMenuItem(menu, "ammo_inferno", mStrInf);
+    AddMenuItem(menu, "ammo_judgement", mStrJud);
+    AddMenuItem(menu, "ammo_idle", mStrIdle);
     SetMenuExitButton(menu, true);
     DisplayMenu(menu, client, 45);
 }
@@ -694,30 +697,36 @@ public int ChangeModeMenu(Handle menu, MenuAction action, int client, int itemNu
 {
     if(action == MenuAction_Select)
     {
-        switch(itemNum)
-        {
-            case 0:
-            {
-                g_spSatellitePlayers[client].currentAmmoType = AMMO_TYPE_JUDGEMENT;
-                PrintHintText(client, MESSAGE_SHIFT1);
-            }
-            case 1:
-            {
-                g_spSatellitePlayers[client].currentAmmoType = AMMO_TYPE_BLIZZARD;
-                PrintHintText(client, MESSAGE_SHIFT2);
-            }
-            case 2:
-            {
-                g_spSatellitePlayers[client].currentAmmoType = AMMO_TYPE_INFERNO;
-                PrintHintText(client, MESSAGE_SHIFT3);
-            }
-            case 3:
-            {
-                g_spSatellitePlayers[client].currentAmmoType = AMMO_TYPE_IDLE;
-                PrintHintText(client, MESSAGE_SHIFT4);
-            }
+        char preference[32];
+        GetMenuItem(menu, itemNum, preference, sizeof(preference));
+
+        if(strcmp(preference, "ammo_blizzard") == 0) {
+            g_spSatellitePlayers[client].currentAmmoType = AMMO_TYPE_BLIZZARD;
+
+            printAmmoTypeChangeMessage(client, AMMO_TYPE_BLIZZARD);
+        }
+        else if(strcmp(preference, "ammo_inferno") == 0) {
+            g_spSatellitePlayers[client].currentAmmoType = AMMO_TYPE_INFERNO;
+
+            printAmmoTypeChangeMessage(client, AMMO_TYPE_INFERNO);
+        }
+        else if(strcmp(preference, "ammo_judgement") == 0) {
+            g_spSatellitePlayers[client].currentAmmoType = AMMO_TYPE_JUDGEMENT;
+
+            printAmmoTypeChangeMessage(client, AMMO_TYPE_JUDGEMENT);
+        }
+        else if(strcmp(preference, "ammo_idle") == 0) {
+            g_spSatellitePlayers[client].currentAmmoType = AMMO_TYPE_IDLE;
+
+            printAmmoTypeChangeMessage(client, AMMO_TYPE_IDLE);
         }
 
+
+        if(!checkSatelliteCanShoot(client) && g_spSatellitePlayers[client].currentAmmoType != AMMO_TYPE_IDLE) {
+            warnEmptyAmmo(client, g_spSatellitePlayers[client].currentAmmoType);
+            EmitSoundToClient(client, SOUND_NEGATIVE);
+            g_spSatellitePlayers[client].currentAmmoType = AMMO_TYPE_IDLE;
+        }
         // Implement notifycation when ammo is out.
         // if(itemNum != 3 && energy[client][itemNum+1] <= 0)
         // {
@@ -756,12 +765,12 @@ public Action SatelliteTimer(Handle timer, any client)
     if(!IsValidEntity(client) || !IsClientInGame(client) || !IsPlayerAlive(client))
         return Plugin_Handled;
 
-    int ammoType = g_spSatellitePlayers[client].currentAmmoType;
+    int ammoType = g_spSatellitePlayers[client].lastAmmoType;
 
     if(ammoType <= AMMO_TYPE_ALL)
         ammoType = AMMO_TYPE_JUDGEMENT;
 
-    switch(g_spSatellitePlayers[client].currentAmmoType) {
+    switch(g_spSatellitePlayers[client].lastAmmoType) {
         case AMMO_TYPE_BLIZZARD: {
             Blizzard(client);
         }
@@ -773,7 +782,6 @@ public Action SatelliteTimer(Handle timer, any client)
         }
     }
 
-    notifyWhenAmmoEmpty(client);
     return Plugin_Handled;
 }
 
@@ -781,29 +789,25 @@ void notifyWhenAmmoEmpty(int client) {
     switch(g_spSatellitePlayers[client].currentAmmoType) {
         case AMMO_TYPE_BLIZZARD: {
             if(g_spSatellitePlayers[client].ammoBlizzard.usesLeft < 1) {
-                printEmptyMessage(client);
+                printEmptyMessage(client, g_spSatellitePlayers[client].currentAmmoType);
                 g_spSatellitePlayers[client].currentAmmoType = AMMO_TYPE_IDLE;
             }
         }
 
         case AMMO_TYPE_INFERNO: {
             if(g_spSatellitePlayers[client].ammoInferno.usesLeft < 1) {
-                printEmptyMessage(client);
+                printEmptyMessage(client, g_spSatellitePlayers[client].currentAmmoType);
                 g_spSatellitePlayers[client].currentAmmoType = AMMO_TYPE_IDLE;
             }
         }
 
         case AMMO_TYPE_JUDGEMENT: {
             if(g_spSatellitePlayers[client].ammoJudgement.usesLeft < 1) {
-                printEmptyMessage(client);
+                printEmptyMessage(client, g_spSatellitePlayers[client].currentAmmoType);
                 g_spSatellitePlayers[client].currentAmmoType = AMMO_TYPE_IDLE;
             }
         }
     }
-}
-
-void printEmptyMessage(int client) {
-    PrintHintText(client, MESSAGE_EMPTY1);
 }
 
 void subtractSatelliteUses(int client) {
@@ -1248,9 +1252,9 @@ public void CreateSparkEffect(int client, int size, int length)
 *    Other functions
 *******************************************************/
 
-bool checkSatelliteCanShoot(int client, SatellitePlayer player) {
+bool checkSatelliteCanShoot(int client) {
 
-    switch(player.currentAmmoType) {
+    switch(g_spSatellitePlayers[client].currentAmmoType) {
         case AMMO_TYPE_ALL, AMMO_TYPE_IDLE: {
             return false;
         }
@@ -1260,8 +1264,7 @@ bool checkSatelliteCanShoot(int client, SatellitePlayer player) {
                 return false;
             }
 
-            if(player.ammoBlizzard.isAmmoEmpty()) {
-                warnEmptyAmmo(client);
+            if(g_spSatellitePlayers[client].ammoBlizzard.isAmmoEmpty()) {
                 return false;
             }
         }
@@ -1271,8 +1274,7 @@ bool checkSatelliteCanShoot(int client, SatellitePlayer player) {
                 return false;
             }
 
-            if(player.ammoInferno.isAmmoEmpty()) {
-                warnEmptyAmmo(client);
+            if(g_spSatellitePlayers[client].ammoInferno.isAmmoEmpty()) {
                 return false;
             }
         }
@@ -1282,8 +1284,7 @@ bool checkSatelliteCanShoot(int client, SatellitePlayer player) {
                 return false;
             }
             
-            if(player.ammoJudgement.isAmmoEmpty()) {
-                warnEmptyAmmo(client);
+            if(g_spSatellitePlayers[client].ammoJudgement.isAmmoEmpty()) {
                 return false;
             }
         }
@@ -1291,8 +1292,46 @@ bool checkSatelliteCanShoot(int client, SatellitePlayer player) {
     return true;
 }
 
-void warnEmptyAmmo(int client) {
-    PrintHintText(client, "TODO_MESSAGE_AMMO_EMPTY");
+void getAmmoName(char[] buffer, int bufferSize, int ammoType, int client) {
+    SetGlobalTransTarget(client);
+    switch(ammoType) {
+        case AMMO_TYPE_BLIZZARD: {
+            Format(buffer, bufferSize, "%t", "sc ammo name blizzard");
+        }
+        case AMMO_TYPE_INFERNO: {
+            Format(buffer, bufferSize, "%t", "sc ammo name inferno");
+        }
+        case AMMO_TYPE_JUDGEMENT: {
+            Format(buffer, bufferSize, "%t", "sc ammo name judgement");
+        }
+        case AMMO_TYPE_IDLE: {
+            Format(buffer, bufferSize, "%t", "sc ammo name idle");
+        }
+        default: {
+            Format(buffer, bufferSize, "%t", "sc ammo name invalid");
+        }
+    }
+}
+
+void printAmmoTypeChangeMessage(int client, int ammoType) {
+    char ammoName[48];
+    getAmmoName(ammoName, sizeof(ammoName), ammoType, client);
+
+    PrintHintText(client, "%t %s", "sc ammo type change", ammoName);
+}
+
+void printEmptyMessage(int client, int ammoType) {
+    char ammoName[48];
+    getAmmoName(ammoName, sizeof(ammoName), ammoType, client);
+
+    PrintHintText(client, "%t", "sc ammo now empty", ammoName);
+}
+
+void warnEmptyAmmo(int client, int ammoType) {
+    char ammoName[48];
+    getAmmoName(ammoName, sizeof(ammoName), ammoType, client);
+
+    PrintHintText(client, "%t", "sc ammo empty", ammoName);
     g_spSatellitePlayers[client].currentAmmoType = AMMO_TYPE_IDLE;
 }
 
@@ -1524,7 +1563,12 @@ public Action DisplayInstructorHint(Handle  timer, any client)
     DispatchKeyValue(entity, "hint_range", "0.01");
     DispatchKeyValue(entity, "hint_color", "255 255 255");
     DispatchKeyValue(entity, "hint_icon_onscreen", "use_binding");
-    DispatchKeyValue(entity, "hint_caption", "Change mode");
+
+
+    char infoText[16];
+    Format(infoText, sizeof(infoText), "%t", "sc info change ammo type");
+
+    DispatchKeyValue(entity, "hint_caption", infoText);
     DispatchKeyValue(entity, "hint_binding", "+zoom");
     DispatchSpawn(entity);
     AcceptEntityInput(entity, "ShowHint");

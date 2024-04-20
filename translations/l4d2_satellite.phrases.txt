@@ -1,0 +1,66 @@
+"Phrases"
+{
+    "sc ammo empty"
+    {
+        "#format" "{1:s}"
+        "en"    "{1} IS OUT OF ENERGY"
+        "jp"    "{1} のエネルギーが足りません"
+    }
+    "sc ammo now empty"
+    {
+        "#format" "{1:s}"
+        "en"    "{1} ENERGY IS OUT"
+        "jp"    "{1} のエネルギーが無くなりました"
+    }
+
+    "sc ammo name blizzard"
+    {
+        "en"    "BLIZZARD"
+        "jp"    "凍結"
+    }
+    "sc ammo name inferno"
+    {
+        "en"    "INFERNO"
+        "jp"    "インフェルノ"
+    }
+    "sc ammo name judgement"
+    {
+        "en"    "JUDGEMENT"
+        "jp"    "ジャッジメント"
+    }
+    "sc ammo name idle"
+    {
+        "en"    "IDLE"
+        "jp"    "停止"
+    }
+    "sc ammo name invalid"
+    {
+        "en"    "INVALID MODE"
+        "jp"    "無効なモード"
+    }
+
+    "sc ammo type change"
+    {
+        "en"    "MODE:"
+        "jp"    "モード:"
+    }
+
+    "sc info change ammo type"
+    {
+        "en"    "Change satellite mode"
+        "jp"    "サテライトのモード変更"
+    }
+    
+    "sc menu ammo left"
+    {
+        "#format" "{1:d}"
+        "en"    "(Energy: {1})"
+        "jp"    "(エネルギー: {1})"
+    }
+
+    "sc menu title"
+    {
+        "en" "*** Change mode: Satellite System ***\n_______________________________________\n"
+        "jp" "*** モード変更: Satellite System ***\n_______________________________________\n"
+    }
+}
