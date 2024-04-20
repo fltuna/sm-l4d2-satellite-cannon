@@ -371,8 +371,12 @@ public void OnPluginStart() {
     g_psPluginSettings.cvars.globalPushForce =      CreateConVar("sm_satellite_push_force_global",      "1.0",      "Toggle global push force. When set to 0 it uses individual push force based on satellite ammo settings.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
     g_psPluginSettings.cvars.friendlyFire =         CreateConVar("sm_satellite_friendly_fire",      "1.0",      "Toggle friendly fire. This value is only be used when sm_satellite_friendly_fire_global is 1", FCVAR_NOTIFY, true, 0.0, true, 1.0);
     g_psPluginSettings.cvars.globalFriendlyFire =   CreateConVar("sm_satellite_friendly_fire_global",      "1.0",      "Toggle global friendly fire. When set to 0 it uses individual push force based on satellite ammo settings.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
-    g_psPluginSettings.cvars.adminFlags =           CreateConVar("sm_satellite_admin_flags",            "z",        "SourceMod admin flag", FCVAR_NOTIFY);
-    g_psPluginSettings.cvars.adminOnly =            CreateConVar("sm_satellite_admin_only",             "1.0",      "Toggle sattelite cannon admin only.", FCVAR_NOTIFY, true, 0.0, true, 2.0);
+    
+    // TODO Implement admin only feature
+    //g_psPluginSettings.cvars.adminFlags =           CreateConVar("sm_satellite_admin_flags",            "z",        "SourceMod admin flag", FCVAR_NOTIFY);
+    //g_psPluginSettings.cvars.adminOnly =            CreateConVar("sm_satellite_admin_only",             "1.0",      "Toggle sattelite cannon admin only.", FCVAR_NOTIFY, true, 0.0, true, 2.0);
+    g_psPluginSettings.cvars.adminFlags =           CreateConVar(DUMMY_CVAR_NAME,              "0",    DUMMY_CVAR_DESCRIPTION, FCVAR_DONTRECORD);
+    g_psPluginSettings.cvars.adminOnly =            CreateConVar(DUMMY_CVAR_NAME,              "0",    DUMMY_CVAR_DESCRIPTION, FCVAR_DONTRECORD);
     g_psPluginSettings.cvars.usageResetTiming =     CreateConVar("sm_satellite_usage_reset_timing",             "1",      "When ammo will reset. | 1: Round start, 2: Map start, 4: Death | If you want to use multiple timings you can set the combined number. For example Round start and death is 5.", FCVAR_NOTIFY);
     g_psPluginSettings.cvars.addChangeHook(OnPluginSettingsUpdated);
     g_psPluginSettings.updateCache();
