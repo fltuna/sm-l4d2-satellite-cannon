@@ -385,8 +385,8 @@ public void OnPluginStart() {
     HookEvent("weapon_fire", onWeaponFired);
     HookEvent("item_pickup", onItemPickUp);
     HookEvent("round_start", onRoundStart);
-    g_hiClip1 = FindSendPropInfo("CTerrorPlayer", "m_g_hActiveWeapon");
-    g_hActiveWeapon = FindSendPropInfo("CBaseCombatWeapon", "g_hiClip1");
+    g_hActiveWeapon = FindSendPropInfo("CTerrorPlayer", "m_hActiveWeapon");
+    g_hiClip1 = FindSendPropInfo("CBaseCombatWeapon", "m_iClip1");
 
     initPlayersAmmo();
 
