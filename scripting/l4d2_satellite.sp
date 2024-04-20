@@ -445,11 +445,6 @@ void initPlayersAmmo() {
         g_spSatellitePlayers[i].ammoInferno.isInfinityAmmo = false;
         g_spSatellitePlayers[i].ammoJudgement.isInfinityAmmo = false;
         resetPlayerAmmo(i, AMMO_TYPE_ALL);
-        if(isValidClient(i)) {
-            PrintToChatAll("Blizzard: %d", g_spSatellitePlayers[i].ammoBlizzard.usesLeft);
-            PrintToChatAll("Inferno: %d", g_spSatellitePlayers[i].ammoInferno.usesLeft);
-            PrintToChatAll("Judgement: %d", g_spSatellitePlayers[i].ammoJudgement.usesLeft);
-        }
     }
 }
 
@@ -483,11 +478,6 @@ void resetPlayerAmmo(int client, int ammoType) {
             g_spSatellitePlayers[client].ammoBlizzard.usesLeft = getSatelliteMaxUses(AMMO_TYPE_BLIZZARD);
             g_spSatellitePlayers[client].ammoInferno.usesLeft = getSatelliteMaxUses(AMMO_TYPE_INFERNO);
             g_spSatellitePlayers[client].ammoJudgement.usesLeft = getSatelliteMaxUses(AMMO_TYPE_JUDGEMENT);
-            if(isValidClient(client)) {
-                PrintToChatAll("Max uses blizzard: %d", getSatelliteMaxUses(AMMO_TYPE_BLIZZARD));
-                PrintToChatAll("Max uses inferno: %d", getSatelliteMaxUses(AMMO_TYPE_INFERNO));
-                PrintToChatAll("Max uses judgement: %d", getSatelliteMaxUses(AMMO_TYPE_JUDGEMENT));
-            }
         }
     }
 }
