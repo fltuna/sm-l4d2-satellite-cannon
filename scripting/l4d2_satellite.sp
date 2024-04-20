@@ -335,8 +335,26 @@ enum struct SatellitePlayer {
     SatelliteAmmo ammoInferno;
 }
 
+#define GLOBAL_MAX_SHOTS_IN_SAME_TIME 64
+int g_iCurrentGlobalShotOwner[GLOBAL_MAX_SHOTS_IN_SAME_TIME];
+int g_iCurrentGlobalShotAmmoType[GLOBAL_MAX_SHOTS_IN_SAME_TIME];
 
+int g_iGlobalShotIndex = 0;
 
+void incrementGlobalShotIndex() {
+    if(g_iGlobalShotIndex >= GLOBAL_MAX_SHOTS_IN_SAME_TIME-1) {
+        g_iGlobalShotIndex = 0;
+        return;
+    }
+
+    g_iGlobalShotIndex++;
+}
+
+void addGlobalShotQueue(int client, int ammoType) {
+    incrementGlobalShotIndex();
+    g_iCurrentGlobalShotOwner[g_iGlobalShotIndex] = client;
+    g_iCurrentGlobalShotAmmoType[g_iGlobalShotIndex] = ammoType;
+}
 
 SatellitePlayer g_spSatellitePlayers[MAXPLAYERS+1];
 SatelliteSettings g_ssSatelliteSettings[SATELLITE_AMMO_TYPE_COUNT];
@@ -496,12 +514,15 @@ public Action onTakeDamage(int victim, int &attacker, int &inflictor, float &dam
     if(damage < 0.1)
         return Plugin_Continue;
 
-    char ammoType[1];
-    GetEntPropString(attacker, Prop_Data, "m_iName", ammoType, sizeof(ammoType));
-
     if ((damagetype & DMG_BLAST || damagetype & DMG_BLAST_SURFACE || damagetype & DMG_AIRBOAT || damagetype & DMG_PLASMA))
     {
-        if(satelliteHasFriendlyFire(StringToInt(ammoType)))
+        PrintToChatAll("Ammo type: %d | Owner: %d | victim: %d", g_iCurrentGlobalShotAmmoType[g_iGlobalShotIndex], g_iCurrentGlobalShotOwner[g_iGlobalShotIndex], victim);
+        PrintToChatAll("Friendly fire?: %s", satelliteHasFriendlyFire(g_iCurrentGlobalShotAmmoType[g_iGlobalShotIndex]) ? "YES": "NO");
+
+        if(g_iCurrentGlobalShotOwner[g_iGlobalShotIndex] == victim) 
+            return Plugin_Continue;
+
+        if(satelliteHasFriendlyFire(g_iCurrentGlobalShotAmmoType[g_iGlobalShotIndex]))
             return Plugin_Continue;
 
         damage = 0.0;
@@ -956,6 +977,7 @@ public void Judgement(int client)
     /* Laser effect */
     CreateLaserEffect(client, 230, 230, 80, 230, 6.0, 1.0, LASER_EFFECT_TYPE_VERTICAL);
     
+    PrintToChatAll("Attacking players");
     /* Damage to special infected */
     for(int i = 1; i <= MaxClients; i ++)
     {
@@ -966,7 +988,7 @@ public void Judgement(int client)
         if(!(GetVectorDistance(pos, g_spSatellitePlayers[client].tracePosition) < getSatelliteRadius(ammoType)))
             continue;
         
-        if (!satelliteHasFriendlyFire(ammoType))
+        if (!satelliteHasFriendlyFire(ammoType) && i != client)
             continue;
 
         DamageEffect(i, getSatelliteDamage(ammoType));
@@ -1082,7 +1104,7 @@ public void castInferno(int client) {
             
         switch(GetClientTeam(i)) {
             case SURVIVOR: {
-                if(!satelliteHasFriendlyFire(AMMO_TYPE_INFERNO))
+                if(!satelliteHasFriendlyFire(AMMO_TYPE_INFERNO) && i != client)
                     continue;
 
                 ScreenFade(i, 200, 0, 0, 150, 80, 1);
@@ -1116,7 +1138,7 @@ public void castInferno(int client) {
         if(!(GetVectorDistance(g_spSatellitePlayers[client].tracePosition, entPos) < getSatelliteRadius(AMMO_TYPE_INFERNO))) 
             continue;
 
-        if(!satelliteHasFriendlyFire(AMMO_TYPE_INFERNO))
+        if(!satelliteHasFriendlyFire(AMMO_TYPE_INFERNO) && i != client)
             continue;
 
         IgniteEntity(i, 10.0);
@@ -1437,6 +1459,7 @@ stock bool satelliteHasFriendlyFire(int ammoType) {
     if(g_psPluginSettings.values.globalFriendlyFire) 
         return g_psPluginSettings.values.friendlyFire;
     
+    PrintToChatAll("Is not global");
     return g_ssSatelliteSettings[ammoType].values.hasFriendlyFire;
 }
 
@@ -1450,6 +1473,7 @@ stock void DamageEffect(int target, float damage)
     DispatchKeyValue(pointHurt, "DamageTarget", tName);
     DispatchKeyValue(pointHurt, "DamageType", "65536");
     DispatchSpawn(pointHurt);
+    addGlobalShotQueue(target, g_spSatellitePlayers[target].lastAmmoType);
     AcceptEntityInput(pointHurt, "Hurt");
     AcceptEntityInput(pointHurt, "Kill");
 
@@ -1493,12 +1517,10 @@ public void LittleFlower(int client, int explosionType, int ammoType)
             }
         }
 
-        char ammoTypeStr[1];
-        Format(ammoTypeStr, sizeof(ammoTypeStr), "%d", ammoType);
-        DispatchKeyValue(entity, "targetname", ammoTypeStr);
         DispatchSpawn(entity);
         SetEntData(entity, GetEntSendPropOffs(entity, "m_CollisionGroup"), 1, 1, true);
         TeleportEntity(entity, g_spSatellitePlayers[client].tracePosition, NULL_VECTOR, NULL_VECTOR);
+        addGlobalShotQueue(client, ammoType);
         AcceptEntityInput(entity, "break");
     }
 }
