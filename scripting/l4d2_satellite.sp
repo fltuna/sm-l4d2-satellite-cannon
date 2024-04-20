@@ -190,7 +190,7 @@ enum struct PluginSettingsCVars {
     ConVar globalBurstDelay;
     ConVar pushForce;
     ConVar globalPushForce;
-    ConVar friendryFire;
+    ConVar friendlyFire;
     ConVar globalFriendlyFire;
     ConVar laserVisualHeight;
     ConVar adminOnly;
@@ -202,7 +202,7 @@ enum struct PluginSettingsCVars {
         this.globalBurstDelay.AddChangeHook(callback);
         this.pushForce.AddChangeHook(callback);
         this.globalPushForce.AddChangeHook(callback);
-        this.friendryFire.AddChangeHook(callback);
+        this.friendlyFire.AddChangeHook(callback);
         this.globalFriendlyFire.AddChangeHook(callback);
         this.laserVisualHeight.AddChangeHook(callback);
         this.adminOnly.AddChangeHook(callback);
@@ -216,7 +216,7 @@ enum struct PluginSettingsValues {
     bool globalBurstDelay;
     float pushForce;
     bool globalPushForce;
-    bool friendryFire;
+    bool friendlyFire;
     bool globalFriendlyFire;
     int laserVisualHeight;
     int adminOnly;
@@ -228,7 +228,7 @@ enum struct PluginSettingsValues {
         ConVar globalBurstDelay,
         ConVar pushForce,
         ConVar globalPushForce,
-        ConVar friendryFire,
+        ConVar friendlyFire,
         ConVar globalFriendlyFire,
         ConVar laserVisualHeight,
         ConVar adminOnly,
@@ -239,7 +239,7 @@ enum struct PluginSettingsValues {
         this.globalBurstDelay = globalBurstDelay.BoolValue;
         this.pushForce = pushForce.FloatValue;
         this.globalPushForce = globalPushForce.BoolValue;
-        this.friendryFire = friendryFire.BoolValue;
+        this.friendlyFire = friendlyFire.BoolValue;
         this.globalFriendlyFire = globalFriendlyFire.BoolValue;
         this.laserVisualHeight = laserVisualHeight.IntValue;
         this.adminOnly = adminOnly.IntValue;
@@ -258,7 +258,7 @@ enum struct PluginSettings {
             this.cvars.globalBurstDelay,
             this.cvars.pushForce,
             this.cvars.globalPushForce,
-            this.cvars.friendryFire,
+            this.cvars.friendlyFire,
             this.cvars.globalFriendlyFire,
             this.cvars.laserVisualHeight,
             this.cvars.adminOnly,
@@ -330,7 +330,7 @@ public void OnPluginStart() {
     g_psPluginSettings.cvars.globalBurstDelay =     CreateConVar("sm_satellite_global_burst_delay",     "1.0",      "Toggle global burst delay. When set to 0 it uses individual burst delay based on satellite ammo settings.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
     g_psPluginSettings.cvars.pushForce =            CreateConVar("sm_satellite_push_force",             "600.0",    "Push force of Satellite cannon. This value is only be used when sm_satellite_global_push_force is 1", FCVAR_NOTIFY);
     g_psPluginSettings.cvars.globalPushForce =      CreateConVar("sm_satellite_global_push_force",      "1.0",      "Toggle global push force. When set to 0 it uses individual push force based on satellite ammo settings.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
-    g_psPluginSettings.cvars.friendryFire =         CreateConVar("sm_satellite_friendly_fire",      "1.0",      "Toggle friendly fire. This value is only be used when sm_satellite_global_friendly_fire is 1", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+    g_psPluginSettings.cvars.friendlyFire =         CreateConVar("sm_satellite_friendly_fire",      "1.0",      "Toggle friendly fire. This value is only be used when sm_satellite_global_friendly_fire is 1", FCVAR_NOTIFY, true, 0.0, true, 1.0);
     g_psPluginSettings.cvars.globalFriendlyFire =   CreateConVar("sm_satellite_global_friendly_fire",      "1.0",      "Toggle global friendly fire. When set to 0 it uses individual push force based on satellite ammo settings.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
     g_psPluginSettings.cvars.adminFlags =           CreateConVar("sm_satellite_admin_flags",            "z",        "SourceMod admin flag", FCVAR_NOTIFY);
     g_psPluginSettings.cvars.adminOnly =            CreateConVar("sm_satellite_admin_only",             "1.0",      "Toggle sattelite cannon admin only.", FCVAR_NOTIFY, true, 0.0, true, 2.0);
@@ -448,7 +448,7 @@ public Action onTakeDamage(int victim, int &attacker, int &inflictor, float &dam
 
     if ((damagetype & DMG_BLAST || damagetype & DMG_BLAST_SURFACE || damagetype & DMG_AIRBOAT || damagetype & DMG_PLASMA))
     {
-        if(satelliteHasFriendryFire(StringToInt(ammoType)))
+        if(satelliteHasFriendlyFire(StringToInt(ammoType)))
             return Plugin_Continue;
 
         damage = 0.0;
@@ -848,7 +848,7 @@ public void Judgement(int client)
         if(!(GetVectorDistance(pos, g_spSatellitePlayers[client].tracePosition) < getSatelliteRadius(ammoType)))
             continue;
         
-        if (!satelliteHasFriendryFire(ammoType))
+        if (!satelliteHasFriendlyFire(ammoType))
             continue;
 
         DamageEffect(i, getSatelliteDamage(ammoType));
@@ -895,7 +895,7 @@ public void Blizzard(int client)
         
         switch(GetClientTeam(i)) {
             case SURVIVOR: {
-                if(!satelliteHasFriendryFire(ammoType) && i != client)
+                if(!satelliteHasFriendlyFire(ammoType) && i != client)
                     return;
 
                 FreezePlayer(i, pos, g_ssSatelliteSettings[ammoType].values.ammoAbillity1);
@@ -1049,7 +1049,7 @@ public void castInferno(int client) {
             
         switch(GetClientTeam(i)) {
             case SURVIVOR: {
-                if(!satelliteHasFriendryFire(AMMO_TYPE_INFERNO))
+                if(!satelliteHasFriendlyFire(AMMO_TYPE_INFERNO))
                     continue;
 
                 ScreenFade(i, 200, 0, 0, 150, 80, 1);
@@ -1083,7 +1083,7 @@ public void castInferno(int client) {
         if(!(GetVectorDistance(g_spSatellitePlayers[client].tracePosition, entPos) < getSatelliteRadius(AMMO_TYPE_INFERNO))) 
             continue;
 
-        if(!satelliteHasFriendryFire(AMMO_TYPE_INFERNO))
+        if(!satelliteHasFriendlyFire(AMMO_TYPE_INFERNO))
             continue;
 
         IgniteEntity(i, 10.0);
@@ -1353,13 +1353,13 @@ int getSatelliteMaxUses(int ammoType) {
 }
 
 
-bool satelliteHasFriendryFireFromClient(int client) {
-    return satelliteHasFriendryFire(g_spSatellitePlayers[client].currentAmmoType);
+bool satelliteHasFriendlyFireFromClient(int client) {
+    return satelliteHasFriendlyFire(g_spSatellitePlayers[client].currentAmmoType);
 }
 
-bool satelliteHasFriendryFire(int ammoType) {
+bool satelliteHasFriendlyFire(int ammoType) {
     if(g_psPluginSettings.values.globalFriendlyFire) 
-        return g_psPluginSettings.values.friendryFire;
+        return g_psPluginSettings.values.friendlyFire;
     
     return g_ssSatelliteSettings[ammoType].values.hasFriendlyFire;
 }
