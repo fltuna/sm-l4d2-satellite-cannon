@@ -653,9 +653,6 @@ public Action onRoundStart(Handle event, const char[] name, bool dontBroadcast)
             }
         }
     }
-    if(g_psPluginSettings.values.usageResetTiming & RT_ROUND_START) {
-        resetAllPlayersAmmo();
-    }
     ResetParameter();
     return Plugin_Continue;
 }
