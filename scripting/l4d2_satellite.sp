@@ -540,8 +540,16 @@ public void OnMapStart() {
     PrecacheSound(SOUND_IMPACT03, true);
     PrecacheSound(SOUND_FREEZE, true);
     PrecacheSound(SOUND_DEFROST, true);
-    if(g_psPluginSettings.values.usageResetTiming & RT_MAP_START) {
-        resetAllPlayersAmmo();
+
+    for(int i = 0; i < SATELLITE_AMMO_TYPE_COUNT; i++) {
+        if(i == AMMO_TYPE_ALL || i == AMMO_TYPE_IDLE)
+            continue;
+
+        if(getSatelliteUsageResetTiming(i) & RT_MAP_START) {
+            for(int client = 1; client <= MaxClients; client++) {
+                resetPlayerAmmo(client, i);
+            }
+        }
     }
 }
 
@@ -599,15 +607,30 @@ bool isValidClient(int client) {
 }
 
 public Action onPlayerDeath(Handle event, const char[] name, bool dontBroadcast) {
-    if(g_psPluginSettings.values.usageResetTiming & RT_ON_DEATH) {
-        int client = GetClientOfUserId(GetEventInt(event, "userid"));
-        resetPlayerAmmo(client, AMMO_TYPE_ALL);
+    for(int i = 0; i < SATELLITE_AMMO_TYPE_COUNT; i++) {
+        if(i == AMMO_TYPE_ALL || i == AMMO_TYPE_IDLE)
+            continue;
+        
+        if(getSatelliteUsageResetTiming(i) & RT_ON_DEATH) {
+            int client = GetClientOfUserId(GetEventInt(event, "userid"));
+            resetPlayerAmmo(client, i);
+        }
     }
     return Plugin_Continue;
 }
 
 public Action onRoundStart(Handle event, const char[] name, bool dontBroadcast)
 {
+    for(int i = 1; i < SATELLITE_AMMO_TYPE_COUNT; i++) {
+        if(i == AMMO_TYPE_ALL || i == AMMO_TYPE_IDLE)
+            continue;
+
+        if(getSatelliteUsageResetTiming(i) & RT_ROUND_START) {
+            for(int client = 1; client <= MaxClients; client++) {
+                resetPlayerAmmo(client, i);
+            }
+        }
+    }
     if(g_psPluginSettings.values.usageResetTiming & RT_ROUND_START) {
         resetAllPlayersAmmo();
     }
