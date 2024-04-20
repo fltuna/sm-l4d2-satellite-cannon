@@ -714,15 +714,15 @@ public Action SatelliteTimer(Handle timer, any client)
 
     switch(g_spSatellitePlayers[client].currentAmmoType) {
         case AMMO_TYPE_BLIZZARD: {
-            Judgement(client);
-            subtractSatelliteUses(client);
-        }
-        case AMMO_TYPE_INFERNO: {
             Blizzard(client);
             subtractSatelliteUses(client);
         }
-        case AMMO_TYPE_JUDGEMENT: {
+        case AMMO_TYPE_INFERNO: {
             castInferno(client);
+            subtractSatelliteUses(client);
+        }
+        case AMMO_TYPE_JUDGEMENT: {
+            Judgement(client);
             subtractSatelliteUses(client);
         }
     }
