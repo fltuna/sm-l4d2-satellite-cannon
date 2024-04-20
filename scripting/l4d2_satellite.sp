@@ -176,74 +176,6 @@ enum struct SatelliteSettings {
     }
 }
 
-enum struct PluginSettingsCVars {
-    ConVar enabled;
-    ConVar burstDelay;
-    ConVar globalBurstDelay;
-    ConVar pushForce;
-    ConVar globalPushForce;
-    ConVar friendlyFire;
-    ConVar globalFriendlyFire;
-    ConVar laserVisualHeight;
-    ConVar adminOnly;
-    ConVar adminFlags;
-    ConVar usageResetTiming;
-
-    void addChangeHook(ConVarChanged callback) {
-        this.enabled.AddChangeHook(callback);
-        this.burstDelay.AddChangeHook(callback);
-        this.globalBurstDelay.AddChangeHook(callback);
-        this.pushForce.AddChangeHook(callback);
-        this.globalPushForce.AddChangeHook(callback);
-        this.friendlyFire.AddChangeHook(callback);
-        this.globalFriendlyFire.AddChangeHook(callback);
-        this.laserVisualHeight.AddChangeHook(callback);
-        this.adminOnly.AddChangeHook(callback);
-        this.adminFlags.AddChangeHook(callback);
-        this.usageResetTiming.AddChangeHook(callback);
-    }
-}
-
-enum struct PluginSettingsValues {
-    bool enabled;
-    float burstDelay;
-    bool globalBurstDelay;
-    float pushForce;
-    bool globalPushForce;
-    bool friendlyFire;
-    bool globalFriendlyFire;
-    int laserVisualHeight;
-    int adminOnly;
-    char adminFlags;
-    int usageResetTiming;
-
-    void setValues(
-        ConVar enabled,
-        ConVar burstDelay,
-        ConVar globalBurstDelay,
-        ConVar pushForce,
-        ConVar globalPushForce,
-        ConVar friendlyFire,
-        ConVar globalFriendlyFire,
-        ConVar laserVisualHeight,
-        ConVar adminOnly,
-        ConVar adminFlags,
-        ConVar usageResetTiming
-    ) {
-        this.enabled = enabled.BoolValue;
-        this.burstDelay = burstDelay.FloatValue;
-        this.globalBurstDelay = globalBurstDelay.BoolValue;
-        this.pushForce = pushForce.FloatValue;
-        this.globalPushForce = globalPushForce.BoolValue;
-        this.friendlyFire = friendlyFire.BoolValue;
-        this.globalFriendlyFire = globalFriendlyFire.BoolValue;
-        this.laserVisualHeight = laserVisualHeight.IntValue;
-        this.adminOnly = adminOnly.IntValue;
-        GetConVarString(adminFlags, this.adminFlags, sizeof(this.adminFlags));
-        this.usageResetTiming = getResetTiming(usageResetTiming.IntValue);
-    }
-}
-
 // I think there is a better way, But I don't have math knowledge to solve this.
 int getResetTiming(int resetTiming) {
     int toReturn;
@@ -284,6 +216,79 @@ int getResetTiming(int resetTiming) {
     return toReturn;
 }
 
+enum struct PluginSettingsCVars {
+    ConVar enabled;
+    ConVar burstDelay;
+    ConVar globalBurstDelay;
+    ConVar pushForce;
+    ConVar globalPushForce;
+    ConVar friendlyFire;
+    ConVar globalFriendlyFire;
+    ConVar laserVisualHeight;
+    ConVar adminOnly;
+    ConVar adminFlags;
+    ConVar usageResetTiming;
+    ConVar globalUsageResetTiming;
+
+    void addChangeHook(ConVarChanged callback) {
+        this.enabled.AddChangeHook(callback);
+        this.burstDelay.AddChangeHook(callback);
+        this.globalBurstDelay.AddChangeHook(callback);
+        this.pushForce.AddChangeHook(callback);
+        this.globalPushForce.AddChangeHook(callback);
+        this.friendlyFire.AddChangeHook(callback);
+        this.globalFriendlyFire.AddChangeHook(callback);
+        this.laserVisualHeight.AddChangeHook(callback);
+        this.adminOnly.AddChangeHook(callback);
+        this.adminFlags.AddChangeHook(callback);
+        this.usageResetTiming.AddChangeHook(callback);
+        this.globalUsageResetTiming.AddChangeHook(callback);
+    }
+}
+
+enum struct PluginSettingsValues {
+    bool enabled;
+    float burstDelay;
+    bool globalBurstDelay;
+    float pushForce;
+    bool globalPushForce;
+    bool friendlyFire;
+    bool globalFriendlyFire;
+    int laserVisualHeight;
+    int adminOnly;
+    char adminFlags;
+    int usageResetTiming;
+    bool globalUsageResetTiming;
+
+    void setValues(
+        ConVar enabled,
+        ConVar burstDelay,
+        ConVar globalBurstDelay,
+        ConVar pushForce,
+        ConVar globalPushForce,
+        ConVar friendlyFire,
+        ConVar globalFriendlyFire,
+        ConVar laserVisualHeight,
+        ConVar adminOnly,
+        ConVar adminFlags,
+        ConVar usageResetTiming,
+        ConVar globalUsageResetTiming
+    ) {
+        this.enabled = enabled.BoolValue;
+        this.burstDelay = burstDelay.FloatValue;
+        this.globalBurstDelay = globalBurstDelay.BoolValue;
+        this.pushForce = pushForce.FloatValue;
+        this.globalPushForce = globalPushForce.BoolValue;
+        this.friendlyFire = friendlyFire.BoolValue;
+        this.globalFriendlyFire = globalFriendlyFire.BoolValue;
+        this.laserVisualHeight = laserVisualHeight.IntValue;
+        this.adminOnly = adminOnly.IntValue;
+        GetConVarString(adminFlags, this.adminFlags, sizeof(this.adminFlags));
+        this.usageResetTiming = getResetTiming(usageResetTiming.IntValue);
+        this.globalUsageResetTiming = globalUsageResetTiming.BoolValue;
+    }
+}
+
 enum struct PluginSettings {
     PluginSettingsCVars cvars;
     PluginSettingsValues values;
@@ -300,7 +305,8 @@ enum struct PluginSettings {
             this.cvars.laserVisualHeight,
             this.cvars.adminOnly,
             this.cvars.adminFlags,
-            this.cvars.usageResetTiming
+            this.cvars.usageResetTiming,
+            this.cvars.globalUsageResetTiming
         );
     }
 }
@@ -378,6 +384,7 @@ public void OnPluginStart() {
     g_psPluginSettings.cvars.adminFlags =           CreateConVar(DUMMY_CVAR_NAME,              "0",    DUMMY_CVAR_DESCRIPTION, FCVAR_DONTRECORD);
     g_psPluginSettings.cvars.adminOnly =            CreateConVar(DUMMY_CVAR_NAME,              "0",    DUMMY_CVAR_DESCRIPTION, FCVAR_DONTRECORD);
     g_psPluginSettings.cvars.usageResetTiming =     CreateConVar("sm_satellite_usage_reset_timing",             "1",      "When ammo will reset. | 1: Round start, 2: Map start, 4: Death | If you want to use multiple timings you can set the combined number. For example Round start and death is 5.", FCVAR_NOTIFY);
+    g_psPluginSettings.cvars.globalUsageResetTiming =   CreateConVar("sm_satellite_usage_reset_timing_global",      "1",      "Toggle global usage reset timing. When set to 0 it uses individual usage reset timing based on satellite ammo settings.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
     g_psPluginSettings.cvars.addChangeHook(OnPluginSettingsUpdated);
     g_psPluginSettings.updateCache();
 
@@ -391,7 +398,7 @@ public void OnPluginStart() {
     g_ssSatelliteSettings[AMMO_TYPE_BLIZZARD].cvars.radius =            CreateConVar("sm_satellite_ammo_blizzard_radius",            "200.0",    "Radius of this cannon.", FCVAR_NOTIFY);
     g_ssSatelliteSettings[AMMO_TYPE_BLIZZARD].cvars.maxUses =           CreateConVar("sm_satellite_ammo_blizzard_limit",             "5",        "Limit of uses. reset timing is depends on usage_reset_timing cvar", FCVAR_NOTIFY);
     g_ssSatelliteSettings[AMMO_TYPE_BLIZZARD].cvars.cooldown =          CreateConVar("sm_satellite_ammo_blizzard_cooldown",          "0.0",      "Cooldown per shot. 0 means you can use immediately when your guns reloaded.", FCVAR_NOTIFY);
-    g_ssSatelliteSettings[AMMO_TYPE_BLIZZARD].cvars.usageResetTiming =  CreateConVar("sm_satellite_ammo_blizzard_usage_reset_timing","0",        "Reset timing of limit of uses. //TODO_DESCRIPTION_RESET_TIMING", FCVAR_NOTIFY);
+    g_ssSatelliteSettings[AMMO_TYPE_BLIZZARD].cvars.usageResetTiming =  CreateConVar("sm_satellite_ammo_blizzard_usage_reset_timing","0",        "When ammo will reset. | 1: Round start, 2: Map start, 4: Death | If you want to use multiple timings you can set the combined number. For example Round start and death is 5.", FCVAR_NOTIFY);
     g_ssSatelliteSettings[AMMO_TYPE_BLIZZARD].cvars.burstDelay =        CreateConVar("sm_satellite_ammo_blizzard_burst_delay",       "1.0",      "Launching delay of this cannon. this value will only used when sm_satellite_burst_delay_global is 0", FCVAR_NOTIFY);
     g_ssSatelliteSettings[AMMO_TYPE_BLIZZARD].cvars.pushForce =         CreateConVar(DUMMY_CVAR_NAME,              "0",    DUMMY_CVAR_DESCRIPTION, FCVAR_DONTRECORD);
     g_ssSatelliteSettings[AMMO_TYPE_BLIZZARD].cvars.ammoAbillity1 =     CreateConVar("sm_satellite_ammo_blizzard_time",              "5.0",    "Freeze time.", FCVAR_NOTIFY);
@@ -410,7 +417,7 @@ public void OnPluginStart() {
     g_ssSatelliteSettings[AMMO_TYPE_INFERNO].cvars.radius =            CreateConVar("sm_satellite_ammo_inferno_radius",            "200.0",    "Radius of this cannon.", FCVAR_NOTIFY);
     g_ssSatelliteSettings[AMMO_TYPE_INFERNO].cvars.maxUses =           CreateConVar("sm_satellite_ammo_inferno_limit",             "5",        "Limit of uses. reset timing is depends on usage_reset_timing cvar", FCVAR_NOTIFY);
     g_ssSatelliteSettings[AMMO_TYPE_INFERNO].cvars.cooldown =          CreateConVar("sm_satellite_ammo_inferno_cooldown",          "0.0",      "Cooldown per shot. 0 means you can use immediately when your guns reloaded.", FCVAR_NOTIFY);
-    g_ssSatelliteSettings[AMMO_TYPE_INFERNO].cvars.usageResetTiming =  CreateConVar("sm_satellite_ammo_inferno_usage_reset_timing","0",        "Reset timing of limit of uses. //TODO_DESCRIPTION_RESET_TIMING", FCVAR_NOTIFY);
+    g_ssSatelliteSettings[AMMO_TYPE_INFERNO].cvars.usageResetTiming =  CreateConVar("sm_satellite_ammo_inferno_usage_reset_timing","0",        "When ammo will reset. | 1: Round start, 2: Map start, 4: Death | If you want to use multiple timings you can set the combined number. For example Round start and death is 5.", FCVAR_NOTIFY);
     g_ssSatelliteSettings[AMMO_TYPE_INFERNO].cvars.burstDelay =        CreateConVar("sm_satellite_ammo_inferno_burst_delay",       "1.0",      "Launching delay of this cannon. this value will only used when sm_satellite_burst_delay_global is 0", FCVAR_NOTIFY);
     g_ssSatelliteSettings[AMMO_TYPE_INFERNO].cvars.pushForce =         CreateConVar("sm_satellite_ammo_inferno_push_force",        "600.0",    "Push force of this cannon. this value will only used when sm_satellite_push_force_global is 0");
     g_ssSatelliteSettings[AMMO_TYPE_INFERNO].cvars.ammoAbillity1 =     CreateConVar(DUMMY_CVAR_NAME,              "0",    DUMMY_CVAR_DESCRIPTION, FCVAR_DONTRECORD);
@@ -430,7 +437,7 @@ public void OnPluginStart() {
     g_ssSatelliteSettings[AMMO_TYPE_JUDGEMENT].cvars.radius =            CreateConVar("sm_satellite_ammo_judgement_radius",            "200.0",    "Radius of this cannon.", FCVAR_NOTIFY);
     g_ssSatelliteSettings[AMMO_TYPE_JUDGEMENT].cvars.maxUses =           CreateConVar("sm_satellite_ammo_judgement_limit",             "5",        "Limit of uses. reset timing is depends on usage_reset_timing cvar", FCVAR_NOTIFY);
     g_ssSatelliteSettings[AMMO_TYPE_JUDGEMENT].cvars.cooldown =          CreateConVar("sm_satellite_ammo_judgement_cooldown",          "0.0",      "Cooldown per shot. 0 means you can use immediately when your guns reloaded.", FCVAR_NOTIFY);
-    g_ssSatelliteSettings[AMMO_TYPE_JUDGEMENT].cvars.usageResetTiming =  CreateConVar("sm_satellite_ammo_judgement_usage_reset_timing","0",        "Reset timing of limit of uses. //TODO_DESCRIPTION_RESET_TIMING", FCVAR_NOTIFY);
+    g_ssSatelliteSettings[AMMO_TYPE_JUDGEMENT].cvars.usageResetTiming =  CreateConVar("sm_satellite_ammo_judgement_usage_reset_timing","0",        "When ammo will reset. | 1: Round start, 2: Map start, 4: Death | If you want to use multiple timings you can set the combined number. For example Round start and death is 5.", FCVAR_NOTIFY);
     g_ssSatelliteSettings[AMMO_TYPE_JUDGEMENT].cvars.burstDelay =        CreateConVar("sm_satellite_ammo_judgement_burst_delay",       "1.0",      "Launching delay of this cannon. this value will only used when sm_satellite_burst_delay_global is 0", FCVAR_NOTIFY);
     g_ssSatelliteSettings[AMMO_TYPE_JUDGEMENT].cvars.pushForce =         CreateConVar("sm_satellite_ammo_judgement_push_force",        "600.0",    "Push force of this cannon. this value will only used when sm_satellite_push_force_global is 0");
     g_ssSatelliteSettings[AMMO_TYPE_JUDGEMENT].cvars.ammoAbillity1 =     CreateConVar(DUMMY_CVAR_NAME,              "0",    DUMMY_CVAR_DESCRIPTION, FCVAR_DONTRECORD);
@@ -1317,6 +1324,13 @@ bool isSatelliteEnabled(int ammoType) {
     return g_ssSatelliteSettings[ammoType].values.enabled;
 }
 
+stock int getSatelliteUsageResetTiming(int ammoType) {
+    if(g_psPluginSettings.values.globalUsageResetTiming) {
+        return g_psPluginSettings.values.usageResetTiming; 
+    }
+
+    return g_ssSatelliteSettings[ammoType].values.usageResetTiming;
+}
 
 stock float getClientSatelliteBurstDelay(int client) {
     return getSatelliteBurstDelay(g_spSatellitePlayers[client].currentAmmoType);
