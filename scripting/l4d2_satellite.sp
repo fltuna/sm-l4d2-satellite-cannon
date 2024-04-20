@@ -516,9 +516,6 @@ public Action onTakeDamage(int victim, int &attacker, int &inflictor, float &dam
 
     if ((damagetype & DMG_BLAST || damagetype & DMG_BLAST_SURFACE || damagetype & DMG_AIRBOAT || damagetype & DMG_PLASMA))
     {
-        PrintToChatAll("Ammo type: %d | Owner: %d | victim: %d", g_iCurrentGlobalShotAmmoType[g_iGlobalShotIndex], g_iCurrentGlobalShotOwner[g_iGlobalShotIndex], victim);
-        PrintToChatAll("Friendly fire?: %s", satelliteHasFriendlyFire(g_iCurrentGlobalShotAmmoType[g_iGlobalShotIndex]) ? "YES": "NO");
-
         if(g_iCurrentGlobalShotOwner[g_iGlobalShotIndex] == victim) 
             return Plugin_Continue;
 
@@ -976,8 +973,7 @@ public void Judgement(int client)
     
     /* Laser effect */
     CreateLaserEffect(client, 230, 230, 80, 230, 6.0, 1.0, LASER_EFFECT_TYPE_VERTICAL);
-    
-    PrintToChatAll("Attacking players");
+
     /* Damage to special infected */
     for(int i = 1; i <= MaxClients; i ++)
     {
@@ -1458,8 +1454,7 @@ stock bool clientSatelliteHasFriendlyFire(int client) {
 stock bool satelliteHasFriendlyFire(int ammoType) {
     if(g_psPluginSettings.values.globalFriendlyFire) 
         return g_psPluginSettings.values.friendlyFire;
-    
-    PrintToChatAll("Is not global");
+
     return g_ssSatelliteSettings[ammoType].values.hasFriendlyFire;
 }
 
