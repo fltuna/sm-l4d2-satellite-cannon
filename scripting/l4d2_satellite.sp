@@ -578,26 +578,48 @@ void resetAllPlayersAmmo() {
  * Reset the player's satellite cannon ammo.
  *
  * @param client      Client index
- * @param ammoType    Ammo type with enum. See l4d2_satellite.inc
+ * @param ammoType    Ammo type with enum.
  */
 void resetPlayerAmmo(int client, int ammoType) {
     switch(ammoType) {
         case AMMO_TYPE_BLIZZARD: {
-            g_spSatellitePlayers[client].ammoBlizzard.usesLeft = getSatelliteMaxUses(AMMO_TYPE_BLIZZARD);
+            setPlayerAmmo(client, ammoType, getSatelliteMaxUses(AMMO_TYPE_BLIZZARD));
         }
 
         case AMMO_TYPE_INFERNO: {
-            g_spSatellitePlayers[client].ammoInferno.usesLeft = getSatelliteMaxUses(AMMO_TYPE_INFERNO);
+            setPlayerAmmo(client, ammoType, getSatelliteMaxUses(AMMO_TYPE_INFERNO));
         }
 
         case AMMO_TYPE_JUDGEMENT: {
-            g_spSatellitePlayers[client].ammoJudgement.usesLeft = getSatelliteMaxUses(AMMO_TYPE_JUDGEMENT);
+            setPlayerAmmo(client, ammoType, getSatelliteMaxUses(AMMO_TYPE_JUDGEMENT));
         }
 
         case AMMO_TYPE_ALL: {
-            g_spSatellitePlayers[client].ammoBlizzard.usesLeft = getSatelliteMaxUses(AMMO_TYPE_BLIZZARD);
-            g_spSatellitePlayers[client].ammoInferno.usesLeft = getSatelliteMaxUses(AMMO_TYPE_INFERNO);
-            g_spSatellitePlayers[client].ammoJudgement.usesLeft = getSatelliteMaxUses(AMMO_TYPE_JUDGEMENT);
+            setPlayerAmmo(client, ammoType, getSatelliteMaxUses(AMMO_TYPE_BLIZZARD));
+            setPlayerAmmo(client, ammoType, getSatelliteMaxUses(AMMO_TYPE_INFERNO));
+            setPlayerAmmo(client, ammoType, getSatelliteMaxUses(AMMO_TYPE_JUDGEMENT));
+        }
+    }
+}
+
+void setPlayerAmmo(int client, int ammoType, int ammoCount) {
+    switch(ammoType) {
+        case AMMO_TYPE_BLIZZARD: {
+            g_spSatellitePlayers[client].ammoBlizzard.usesLeft = ammoCount;
+        }
+
+        case AMMO_TYPE_INFERNO: {
+            g_spSatellitePlayers[client].ammoInferno.usesLeft = ammoCount;
+        }
+
+        case AMMO_TYPE_JUDGEMENT: {
+            g_spSatellitePlayers[client].ammoJudgement.usesLeft = ammoCount;
+        }
+
+        case AMMO_TYPE_ALL: {
+            g_spSatellitePlayers[client].ammoBlizzard.usesLeft = ammoCount;
+            g_spSatellitePlayers[client].ammoInferno.usesLeft = ammoCount;
+            g_spSatellitePlayers[client].ammoJudgement.usesLeft = ammoCount;
         }
     }
 }
