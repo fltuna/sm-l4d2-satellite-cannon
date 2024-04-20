@@ -324,7 +324,7 @@ public void OnPluginStart() {
     g_psPluginSettings.cvars = settingsCVars;
     g_psPluginSettings.values = settingsValues;
 
-    g_psPluginSettings.cvars.enabled =              CreateConVar("g_psPluginSettings.cvars.enabled",                 "1",        "0:OFF 1:ON", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+    g_psPluginSettings.cvars.enabled =              CreateConVar("sm_satellite_enable",                 "1",        "0:OFF 1:ON", FCVAR_NOTIFY, true, 0.0, true, 1.0);
     g_psPluginSettings.cvars.laserVisualHeight =    CreateConVar("sm_satellite_laser_visual_height",    "650",      "Height of launching point visual laser.", FCVAR_NOTIFY);
     g_psPluginSettings.cvars.burstDelay =           CreateConVar("sm_satellite_burst_delay",            "1.0",      "Launching delay of Satellite cannon. This value is only be used when sm_satellite_global_burst_delay is 1", FCVAR_NOTIFY);
     g_psPluginSettings.cvars.globalBurstDelay =     CreateConVar("sm_satellite_global_burst_delay",     "1.0",      "Toggle global burst delay. When set to 0 it uses individual burst delay based on satellite ammo settings.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
