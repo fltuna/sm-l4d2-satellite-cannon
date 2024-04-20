@@ -18,11 +18,11 @@
 
 
 /* Message */
-#define MESSAGE_EMPTY1	"ENERGY OUT"
-#define MESSAGE_SHIFT1	"YOU HAVE SWITCHED TO MODE \nJUDGEMENT"
-#define MESSAGE_SHIFT2	"YOU HAVE SWITCHED TO MODE \nBLIZZARD"
-#define MESSAGE_SHIFT3	"YOU HAVE SWITCHED TO MODE \nINFERNO"
-#define MESSAGE_SHIFT4	"YOU HAVE SWITCHED TO MODE \nNORMAL"
+#define MESSAGE_EMPTY1    "ENERGY OUT"
+#define MESSAGE_SHIFT1    "YOU HAVE SWITCHED TO MODE \nJUDGEMENT"
+#define MESSAGE_SHIFT2    "YOU HAVE SWITCHED TO MODE \nBLIZZARD"
+#define MESSAGE_SHIFT3    "YOU HAVE SWITCHED TO MODE \nINFERNO"
+#define MESSAGE_SHIFT4    "YOU HAVE SWITCHED TO MODE \nNORMAL"
 
 /* Sound */
 #define SOUND_NEGATIVE    "npc/soldier1/misc18.wav"
@@ -190,6 +190,8 @@ enum struct PluginSettingsCVars {
     ConVar globalBurstDelay;
     ConVar pushForce;
     ConVar globalPushForce;
+    ConVar friendryFire;
+    ConVar globalFriendlyFire;
     ConVar laserVisualHeight;
     ConVar adminOnly;
     ConVar adminFlags;
@@ -200,6 +202,8 @@ enum struct PluginSettingsCVars {
         this.globalBurstDelay.AddChangeHook(callback);
         this.pushForce.AddChangeHook(callback);
         this.globalPushForce.AddChangeHook(callback);
+        this.friendryFire.AddChangeHook(callback);
+        this.globalFriendlyFire.AddChangeHook(callback);
         this.laserVisualHeight.AddChangeHook(callback);
         this.adminOnly.AddChangeHook(callback);
         this.adminFlags.AddChangeHook(callback);
@@ -212,6 +216,8 @@ enum struct PluginSettingsValues {
     bool globalBurstDelay;
     float pushForce;
     bool globalPushForce;
+    bool friendryFire;
+    bool globalFriendlyFire;
     int laserVisualHeight;
     int adminOnly;
     char adminFlags;
@@ -222,6 +228,8 @@ enum struct PluginSettingsValues {
         ConVar globalBurstDelay,
         ConVar pushForce,
         ConVar globalPushForce,
+        ConVar friendryFire,
+        ConVar globalFriendlyFire,
         ConVar laserVisualHeight,
         ConVar adminOnly,
         ConVar adminFlags
@@ -231,6 +239,8 @@ enum struct PluginSettingsValues {
         this.globalBurstDelay = globalBurstDelay.BoolValue;
         this.pushForce = pushForce.FloatValue;
         this.globalPushForce = globalPushForce.BoolValue;
+        this.friendryFire = friendryFire.BoolValue;
+        this.globalFriendlyFire = globalFriendlyFire.BoolValue;
         this.laserVisualHeight = laserVisualHeight.IntValue;
         this.adminOnly = adminOnly.IntValue;
         GetConVarString(adminFlags, this.adminFlags, sizeof(this.adminFlags));
@@ -248,6 +258,8 @@ enum struct PluginSettings {
             this.cvars.globalBurstDelay,
             this.cvars.pushForce,
             this.cvars.globalPushForce,
+            this.cvars.friendryFire,
+            this.cvars.globalFriendlyFire,
             this.cvars.laserVisualHeight,
             this.cvars.adminOnly,
             this.cvars.adminFlags
@@ -314,10 +326,12 @@ public void OnPluginStart() {
 
     g_psPluginSettings.cvars.enabled =              CreateConVar("g_psPluginSettings.cvars.enabled",                 "1",        "0:OFF 1:ON", FCVAR_NOTIFY, true, 0.0, true, 1.0);
     g_psPluginSettings.cvars.laserVisualHeight =    CreateConVar("sm_satellite_laser_visual_height",    "650",      "Height of launching point visual laser.", FCVAR_NOTIFY);
-    g_psPluginSettings.cvars.burstDelay =           CreateConVar("sm_satellite_burst_delay",            "1.0",      "Launching delay of Satellite cannon", FCVAR_NOTIFY);
+    g_psPluginSettings.cvars.burstDelay =           CreateConVar("sm_satellite_burst_delay",            "1.0",      "Launching delay of Satellite cannon. This value is only be used when sm_satellite_global_burst_delay is 1", FCVAR_NOTIFY);
     g_psPluginSettings.cvars.globalBurstDelay =     CreateConVar("sm_satellite_global_burst_delay",     "1.0",      "Toggle global burst delay. When set to 0 it uses individual burst delay based on satellite ammo settings.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
-    g_psPluginSettings.cvars.pushForce =            CreateConVar("sm_satellite_push_force",             "600.0",    "Push force of Satellite cannon", FCVAR_NOTIFY);
+    g_psPluginSettings.cvars.pushForce =            CreateConVar("sm_satellite_push_force",             "600.0",    "Push force of Satellite cannon. This value is only be used when sm_satellite_global_push_force is 1", FCVAR_NOTIFY);
     g_psPluginSettings.cvars.globalPushForce =      CreateConVar("sm_satellite_global_push_force",      "1.0",      "Toggle global push force. When set to 0 it uses individual push force based on satellite ammo settings.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+    g_psPluginSettings.cvars.friendryFire =         CreateConVar("sm_satellite_friendly_fire",      "1.0",      "Toggle friendly fire. This value is only be used when sm_satellite_global_friendly_fire is 1", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+    g_psPluginSettings.cvars.globalFriendlyFire =   CreateConVar("sm_satellite_global_friendly_fire",      "1.0",      "Toggle global friendly fire. When set to 0 it uses individual push force based on satellite ammo settings.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
     g_psPluginSettings.cvars.adminFlags =           CreateConVar("sm_satellite_admin_flags",            "z",        "SourceMod admin flag", FCVAR_NOTIFY);
     g_psPluginSettings.cvars.adminOnly =            CreateConVar("sm_satellite_admin_only",             "1.0",      "Toggle sattelite cannon admin only.", FCVAR_NOTIFY, true, 0.0, true, 2.0);
     g_psPluginSettings.cvars.addChangeHook(OnPluginSettingsUpdated);
@@ -338,7 +352,7 @@ public void OnPluginStart() {
     g_ssSatelliteSettings[AMMO_TYPE_BLIZZARD].cvars.pushForce =         CreateConVar(DUMMY_CVAR_NAME,              "0",    DUMMY_CVAR_DESCRIPTION, FCVAR_DONTRECORD);
     g_ssSatelliteSettings[AMMO_TYPE_BLIZZARD].cvars.ammoAbillity1 =     CreateConVar("sm_satellite_blizzard_time",              "5.0",    "Freeze time.", FCVAR_NOTIFY);
     g_ssSatelliteSettings[AMMO_TYPE_BLIZZARD].cvars.ammoAbillity2 =     CreateConVar(DUMMY_CVAR_NAME,              "0",    DUMMY_CVAR_DESCRIPTION, FCVAR_DONTRECORD);
-    g_ssSatelliteSettings[AMMO_TYPE_BLIZZARD].cvars.hasFriendlyFire =     CreateConVar("sm_satellite_ammo_blizzard_friendly_fire",            "1",        "0:OFF 1:ON", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+    g_ssSatelliteSettings[AMMO_TYPE_BLIZZARD].cvars.hasFriendlyFire =   CreateConVar("sm_satellite_ammo_blizzard_friendly_fire",            "1",        "0:OFF 1:ON", FCVAR_NOTIFY, true, 0.0, true, 1.0);
     g_ssSatelliteSettings[AMMO_TYPE_BLIZZARD].cvars.addChangeHook(OnPluginSettingsUpdated);
     g_ssSatelliteSettings[AMMO_TYPE_BLIZZARD].updateCache();
 
@@ -357,7 +371,7 @@ public void OnPluginStart() {
     g_ssSatelliteSettings[AMMO_TYPE_INFERNO].cvars.pushForce =         CreateConVar("sm_satellite_ammo_inferno_push_force",        "600.0",    "Push force of this cannon. this value will only used when sm_satellite_global_push_force is 0");
     g_ssSatelliteSettings[AMMO_TYPE_INFERNO].cvars.ammoAbillity1 =     CreateConVar(DUMMY_CVAR_NAME,              "0",    DUMMY_CVAR_DESCRIPTION, FCVAR_DONTRECORD);
     g_ssSatelliteSettings[AMMO_TYPE_INFERNO].cvars.ammoAbillity2 =     CreateConVar(DUMMY_CVAR_NAME,              "0",    DUMMY_CVAR_DESCRIPTION, FCVAR_DONTRECORD);
-    g_ssSatelliteSettings[AMMO_TYPE_INFERNO].cvars.hasFriendlyFire =     CreateConVar("sm_satellite_ammo_inferno_friendly_fire",            "1",        "0:OFF 1:ON", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+    g_ssSatelliteSettings[AMMO_TYPE_INFERNO].cvars.hasFriendlyFire =   CreateConVar("sm_satellite_ammo_inferno_friendly_fire",            "1",        "0:OFF 1:ON", FCVAR_NOTIFY, true, 0.0, true, 1.0);
     g_ssSatelliteSettings[AMMO_TYPE_INFERNO].cvars.addChangeHook(OnPluginSettingsUpdated);
     g_ssSatelliteSettings[AMMO_TYPE_INFERNO].updateCache();
 
@@ -377,7 +391,7 @@ public void OnPluginStart() {
     g_ssSatelliteSettings[AMMO_TYPE_JUDGEMENT].cvars.pushForce =         CreateConVar("sm_satellite_ammo_judgement_push_force",        "600.0",    "Push force of this cannon. this value will only used when sm_satellite_global_push_force is 0");
     g_ssSatelliteSettings[AMMO_TYPE_JUDGEMENT].cvars.ammoAbillity1 =     CreateConVar(DUMMY_CVAR_NAME,              "0",    DUMMY_CVAR_DESCRIPTION, FCVAR_DONTRECORD);
     g_ssSatelliteSettings[AMMO_TYPE_JUDGEMENT].cvars.ammoAbillity2 =     CreateConVar(DUMMY_CVAR_NAME,              "0",    DUMMY_CVAR_DESCRIPTION, FCVAR_DONTRECORD);
-    g_ssSatelliteSettings[AMMO_TYPE_JUDGEMENT].cvars.hasFriendlyFire =     CreateConVar("sm_satellite_ammo_judgement_friendly_fire",            "1",        "0:OFF 1:ON", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+    g_ssSatelliteSettings[AMMO_TYPE_JUDGEMENT].cvars.hasFriendlyFire =   CreateConVar("sm_satellite_ammo_judgement_friendly_fire",            "1",        "0:OFF 1:ON", FCVAR_NOTIFY, true, 0.0, true, 1.0);
     g_ssSatelliteSettings[AMMO_TYPE_JUDGEMENT].cvars.addChangeHook(OnPluginSettingsUpdated);
     g_ssSatelliteSettings[AMMO_TYPE_JUDGEMENT].updateCache();
 
@@ -389,8 +403,23 @@ public void OnPluginStart() {
     g_hiClip1 = FindSendPropInfo("CBaseCombatWeapon", "m_iClip1");
 
     initPlayersAmmo();
+    for(int i = 1; i <= MaxClients; i++) {
+        if(!IsClientConnected(i) || !IsClientInGame(i))
+            continue;
+        
+        SDKHook(i, SDKHook_OnTakeDamage, onTakeDamage);
+    }
 
     AutoExecConfig(true,"l4d2_sm_satellite");
+}
+
+public void OnPluginEnd() {
+    for(int i = 1; i <= MaxClients; i++) {
+        if(!IsClientConnected(i) || !IsClientInGame(i))
+            continue;
+        
+        SDKUnhook(i, SDKHook_OnTakeDamage, onTakeDamage);
+    }
 }
 
 public void OnPluginSettingsUpdated(ConVar convar, const char[] oldValue, const char[] newValue) {
@@ -400,6 +429,33 @@ public void OnPluginSettingsUpdated(ConVar convar, const char[] oldValue, const 
     g_ssSatelliteSettings[AMMO_TYPE_JUDGEMENT].updateCache();
 }
 
+public void OnClientPutInServer(int client) {
+    SDKHook(client, SDKHook_OnTakeDamage, onTakeDamage);
+}
+
+public void OnClientDisconnect(int client) {
+    SDKUnhook(client, SDKHook_OnTakeDamage, onTakeDamage);
+}
+
+
+public Action onTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
+{
+    if(damage < 0.1)
+        return Plugin_Continue;
+
+    char ammoType[1];
+    GetEntPropString(attacker, Prop_Data, "m_iName", ammoType, sizeof(ammoType));
+
+    if ((damagetype & DMG_BLAST || damagetype & DMG_BLAST_SURFACE || damagetype & DMG_AIRBOAT || damagetype & DMG_PLASMA))
+    {
+        if(satelliteHasFriendryFire(StringToInt(ammoType)))
+            return Plugin_Continue;
+
+        damage = 0.0;
+        return Plugin_Handled;
+    }
+    return Plugin_Continue;
+}
 
 public void OnMapStart() {
     resetAllPlayersAmmo();
@@ -788,16 +844,17 @@ public void Judgement(int client)
         if(!IsClientInGame(i) || GetClientTeam(i) != 3)
             continue;
         GetClientAbsOrigin(i, pos);
-        if(GetVectorDistance(pos, g_spSatellitePlayers[client].tracePosition) < getSatelliteRadius(ammoType))
-        {
-            if (satelliteHasFriendryFire(ammoType))
-            {
-                DamageEffect(i, getSatelliteDamage(ammoType));
-            }
-        }
+
+        if(!(GetVectorDistance(pos, g_spSatellitePlayers[client].tracePosition) < getSatelliteRadius(ammoType)))
+            continue;
+        
+        if (!satelliteHasFriendryFire(ammoType))
+            continue;
+
+        DamageEffect(i, getSatelliteDamage(ammoType));
     }
     /* Explode */
-    LittleFlower(client, EXPLOSION_TYPE_EXPLODE);
+    LittleFlower(client, EXPLOSION_TYPE_EXPLODE, ammoType);
     
     /* Push away */
     PushAway(client, getSatellitePushForce(ammoType),
@@ -832,19 +889,25 @@ public void Blizzard(int client)
         if(!IsClientInGame(i))
             continue;
         GetClientEyePosition(i, pos);
-        if(GetVectorDistance(pos, g_spSatellitePlayers[client].tracePosition) < getSatelliteRadius(ammoType))
-        {
-            if(GetClientTeam(i) == SURVIVOR)
-            {
+
+        if(!(GetVectorDistance(pos, g_spSatellitePlayers[client].tracePosition) < getSatelliteRadius(ammoType)))
+            continue;
+        
+        switch(GetClientTeam(i)) {
+            case SURVIVOR: {
+                if(!satelliteHasFriendryFire(ammoType) && i != client)
+                    return;
+
                 FreezePlayer(i, pos, g_ssSatelliteSettings[ammoType].values.ammoAbillity1);
             }
-            else if(GetClientTeam(i) == INFECTED)
-            {
+
+            case INFECTED: {
                 int EventEClassMag = GetEntData(i, MEspecialClassMag);
                 if(EventEClassMag <= 8)
-                FreezePlayer(i, pos, g_ssSatelliteSettings[ammoType].values.ammoAbillity1);
+                    FreezePlayer(i, pos, g_ssSatelliteSettings[ammoType].values.ammoAbillity1);
             }
         }
+
     }
     
     /* Freeze infected in the radius */
@@ -981,17 +1044,20 @@ public void castInferno(int client) {
 
         GetClientEyePosition(i, eyePosition);
 
-        if(GetVectorDistance(eyePosition, g_spSatellitePlayers[client].tracePosition) < getSatelliteRadius(AMMO_TYPE_INFERNO)) {
+        if(!(GetVectorDistance(eyePosition, g_spSatellitePlayers[client].tracePosition) < getSatelliteRadius(AMMO_TYPE_INFERNO)))
+            continue;
             
-            switch(GetClientTeam(i)) {
-                case SURVIVOR: {
-                    ScreenFade(i, 200, 0, 0, 150, 80, 1);
-                    DamageEffect(i, 5.0);
-                }
-                case INFECTED: {
-                    IgniteEntity(i, 10.0);
-                    DamageEffect(i, getSatelliteDamage(AMMO_TYPE_INFERNO));
-                }
+        switch(GetClientTeam(i)) {
+            case SURVIVOR: {
+                if(!satelliteHasFriendryFire(AMMO_TYPE_INFERNO))
+                    continue;
+
+                ScreenFade(i, 200, 0, 0, 150, 80, 1);
+                DamageEffect(i, 5.0);
+            }
+            case INFECTED: {
+                IgniteEntity(i, 10.0);
+                DamageEffect(i, getSatelliteDamage(AMMO_TYPE_INFERNO));
             }
         }
     }
@@ -1014,10 +1080,14 @@ public void castInferno(int client) {
         GetEntPropVector(i, Prop_Send, "m_vecOrigin", entPos);
         entPos[2] += 50;
 
-        if(GetVectorDistance(g_spSatellitePlayers[client].tracePosition, entPos) < getSatelliteRadius(AMMO_TYPE_INFERNO)) {
-            IgniteEntity(i, 10.0);
-            DamageEffect(i, 50.0);
-        }
+        if(!(GetVectorDistance(g_spSatellitePlayers[client].tracePosition, entPos) < getSatelliteRadius(AMMO_TYPE_INFERNO))) 
+            continue;
+
+        if(!satelliteHasFriendryFire(AMMO_TYPE_INFERNO))
+            continue;
+
+        IgniteEntity(i, 10.0);
+        DamageEffect(i, 50.0);
     }
 
     PushAway(
@@ -1283,11 +1353,14 @@ int getSatelliteMaxUses(int ammoType) {
 }
 
 
-int satelliteHasFriendryFireFromClient(int client) {
+bool satelliteHasFriendryFireFromClient(int client) {
     return satelliteHasFriendryFire(g_spSatellitePlayers[client].currentAmmoType);
 }
 
-int satelliteHasFriendryFire(int ammoType) {
+bool satelliteHasFriendryFire(int ammoType) {
+    if(g_psPluginSettings.values.globalFriendlyFire) 
+        return g_psPluginSettings.values.friendryFire;
+    
     return g_ssSatelliteSettings[ammoType].values.hasFriendlyFire;
 }
 
@@ -1319,7 +1392,7 @@ public void PushAway(int client, float force, float radius, float duration)
     CreateTimer(duration, DeletePushForce, push);
 }
 
-public void LittleFlower(int client, int type)
+public void LittleFlower(int client, int explosionType, int ammoType)
 {
     /* Cause fire(type=0) or explosion(type=1) */
     int entity = CreateEntityByName("prop_physics");
@@ -1327,7 +1400,7 @@ public void LittleFlower(int client, int type)
     {
         g_spSatellitePlayers[client].tracePosition[2] += 20;
 
-        switch(type) {
+        switch(explosionType) {
             case EXPLOSION_TYPE_MOLOTOV: {
                 /* fire */
                 DispatchKeyValue(entity, "model", ENTITY_GASCAN);
@@ -1344,6 +1417,9 @@ public void LittleFlower(int client, int type)
             }
         }
 
+        char ammoTypeStr[1];
+        Format(ammoTypeStr, sizeof(ammoTypeStr), "%d", ammoType);
+        DispatchKeyValue(entity, "targetname", ammoTypeStr);
         DispatchSpawn(entity);
         SetEntData(entity, GetEntSendPropOffs(entity, "m_CollisionGroup"), 1, 1, true);
         TeleportEntity(entity, g_spSatellitePlayers[client].tracePosition, NULL_VECTOR, NULL_VECTOR);
