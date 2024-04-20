@@ -326,12 +326,12 @@ public void OnPluginStart() {
 
     g_psPluginSettings.cvars.enabled =              CreateConVar("sm_satellite_enable",                 "1",        "0:OFF 1:ON", FCVAR_NOTIFY, true, 0.0, true, 1.0);
     g_psPluginSettings.cvars.laserVisualHeight =    CreateConVar("sm_satellite_laser_visual_height",    "650",      "Height of launching point visual laser.", FCVAR_NOTIFY);
-    g_psPluginSettings.cvars.burstDelay =           CreateConVar("sm_satellite_burst_delay",            "1.0",      "Launching delay of Satellite cannon. This value is only be used when sm_satellite_global_burst_delay is 1", FCVAR_NOTIFY);
-    g_psPluginSettings.cvars.globalBurstDelay =     CreateConVar("sm_satellite_global_burst_delay",     "1.0",      "Toggle global burst delay. When set to 0 it uses individual burst delay based on satellite ammo settings.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
-    g_psPluginSettings.cvars.pushForce =            CreateConVar("sm_satellite_push_force",             "600.0",    "Push force of Satellite cannon. This value is only be used when sm_satellite_global_push_force is 1", FCVAR_NOTIFY);
-    g_psPluginSettings.cvars.globalPushForce =      CreateConVar("sm_satellite_global_push_force",      "1.0",      "Toggle global push force. When set to 0 it uses individual push force based on satellite ammo settings.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
-    g_psPluginSettings.cvars.friendlyFire =         CreateConVar("sm_satellite_friendly_fire",      "1.0",      "Toggle friendly fire. This value is only be used when sm_satellite_global_friendly_fire is 1", FCVAR_NOTIFY, true, 0.0, true, 1.0);
-    g_psPluginSettings.cvars.globalFriendlyFire =   CreateConVar("sm_satellite_global_friendly_fire",      "1.0",      "Toggle global friendly fire. When set to 0 it uses individual push force based on satellite ammo settings.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+    g_psPluginSettings.cvars.burstDelay =           CreateConVar("sm_satellite_burst_delay",            "1.0",      "Launching delay of Satellite cannon. This value is only be used when sm_satellite_burst_delay_global is 1", FCVAR_NOTIFY);
+    g_psPluginSettings.cvars.globalBurstDelay =     CreateConVar("sm_satellite_burst_delay_global",     "1.0",      "Toggle global burst delay. When set to 0 it uses individual burst delay based on satellite ammo settings.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+    g_psPluginSettings.cvars.pushForce =            CreateConVar("sm_satellite_push_force",             "600.0",    "Push force of Satellite cannon. This value is only be used when sm_satellite_push_force_global is 1", FCVAR_NOTIFY);
+    g_psPluginSettings.cvars.globalPushForce =      CreateConVar("sm_satellite_push_force_global",      "1.0",      "Toggle global push force. When set to 0 it uses individual push force based on satellite ammo settings.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+    g_psPluginSettings.cvars.friendlyFire =         CreateConVar("sm_satellite_friendly_fire",      "1.0",      "Toggle friendly fire. This value is only be used when sm_satellite_friendly_fire_global is 1", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+    g_psPluginSettings.cvars.globalFriendlyFire =   CreateConVar("sm_satellite_friendly_fire_global",      "1.0",      "Toggle global friendly fire. When set to 0 it uses individual push force based on satellite ammo settings.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
     g_psPluginSettings.cvars.adminFlags =           CreateConVar("sm_satellite_admin_flags",            "z",        "SourceMod admin flag", FCVAR_NOTIFY);
     g_psPluginSettings.cvars.adminOnly =            CreateConVar("sm_satellite_admin_only",             "1.0",      "Toggle sattelite cannon admin only.", FCVAR_NOTIFY, true, 0.0, true, 2.0);
     g_psPluginSettings.cvars.addChangeHook(OnPluginSettingsUpdated);
@@ -348,11 +348,11 @@ public void OnPluginStart() {
     g_ssSatelliteSettings[AMMO_TYPE_BLIZZARD].cvars.maxUses =           CreateConVar("sm_satellite_ammo_blizzard_limit",             "5",        "Limit of uses. reset timing is depends on usage_reset_timing cvar", FCVAR_NOTIFY);
     g_ssSatelliteSettings[AMMO_TYPE_BLIZZARD].cvars.cooldown =          CreateConVar("sm_satellite_ammo_blizzard_cooldown",          "0.0",      "Cooldown per shot. 0 means you can use immediately when your guns reloaded.", FCVAR_NOTIFY);
     g_ssSatelliteSettings[AMMO_TYPE_BLIZZARD].cvars.usageResetTiming =  CreateConVar("sm_satellite_ammo_blizzard_usage_reset_timing","0",        "Reset timing of limit of uses. //TODO_DESCRIPTION_RESET_TIMING", FCVAR_NOTIFY);
-    g_ssSatelliteSettings[AMMO_TYPE_BLIZZARD].cvars.burstDelay =        CreateConVar("sm_satellite_ammo_blizzard_burst_delay",       "1.0",      "Launching delay of this cannon. this value will only used when sm_satellite_global_burst_delay is 0", FCVAR_NOTIFY);
+    g_ssSatelliteSettings[AMMO_TYPE_BLIZZARD].cvars.burstDelay =        CreateConVar("sm_satellite_ammo_blizzard_burst_delay",       "1.0",      "Launching delay of this cannon. this value will only used when sm_satellite_burst_delay_global is 0", FCVAR_NOTIFY);
     g_ssSatelliteSettings[AMMO_TYPE_BLIZZARD].cvars.pushForce =         CreateConVar(DUMMY_CVAR_NAME,              "0",    DUMMY_CVAR_DESCRIPTION, FCVAR_DONTRECORD);
-    g_ssSatelliteSettings[AMMO_TYPE_BLIZZARD].cvars.ammoAbillity1 =     CreateConVar("sm_satellite_blizzard_time",              "5.0",    "Freeze time.", FCVAR_NOTIFY);
+    g_ssSatelliteSettings[AMMO_TYPE_BLIZZARD].cvars.ammoAbillity1 =     CreateConVar("sm_satellite_ammo_blizzard_time",              "5.0",    "Freeze time.", FCVAR_NOTIFY);
     g_ssSatelliteSettings[AMMO_TYPE_BLIZZARD].cvars.ammoAbillity2 =     CreateConVar(DUMMY_CVAR_NAME,              "0",    DUMMY_CVAR_DESCRIPTION, FCVAR_DONTRECORD);
-    g_ssSatelliteSettings[AMMO_TYPE_BLIZZARD].cvars.hasFriendlyFire =   CreateConVar("sm_satellite_ammo_blizzard_friendly_fire",            "1",        "0:OFF 1:ON", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+    g_ssSatelliteSettings[AMMO_TYPE_BLIZZARD].cvars.hasFriendlyFire =   CreateConVar("sm_satellite_ammo_blizzard_friendly_fire",            "1",        "0:OFF 1:ON. This value is only be used when sm_satellite_friendly_fire_global is 0", FCVAR_NOTIFY, true, 0.0, true, 1.0);
     g_ssSatelliteSettings[AMMO_TYPE_BLIZZARD].cvars.addChangeHook(OnPluginSettingsUpdated);
     g_ssSatelliteSettings[AMMO_TYPE_BLIZZARD].updateCache();
 
@@ -367,11 +367,11 @@ public void OnPluginStart() {
     g_ssSatelliteSettings[AMMO_TYPE_INFERNO].cvars.maxUses =           CreateConVar("sm_satellite_ammo_inferno_limit",             "5",        "Limit of uses. reset timing is depends on usage_reset_timing cvar", FCVAR_NOTIFY);
     g_ssSatelliteSettings[AMMO_TYPE_INFERNO].cvars.cooldown =          CreateConVar("sm_satellite_ammo_inferno_cooldown",          "0.0",      "Cooldown per shot. 0 means you can use immediately when your guns reloaded.", FCVAR_NOTIFY);
     g_ssSatelliteSettings[AMMO_TYPE_INFERNO].cvars.usageResetTiming =  CreateConVar("sm_satellite_ammo_inferno_usage_reset_timing","0",        "Reset timing of limit of uses. //TODO_DESCRIPTION_RESET_TIMING", FCVAR_NOTIFY);
-    g_ssSatelliteSettings[AMMO_TYPE_INFERNO].cvars.burstDelay =        CreateConVar("sm_satellite_ammo_inferno_burst_delay",       "1.0",      "Launching delay of this cannon. this value will only used when sm_satellite_global_burst_delay is 0", FCVAR_NOTIFY);
-    g_ssSatelliteSettings[AMMO_TYPE_INFERNO].cvars.pushForce =         CreateConVar("sm_satellite_ammo_inferno_push_force",        "600.0",    "Push force of this cannon. this value will only used when sm_satellite_global_push_force is 0");
+    g_ssSatelliteSettings[AMMO_TYPE_INFERNO].cvars.burstDelay =        CreateConVar("sm_satellite_ammo_inferno_burst_delay",       "1.0",      "Launching delay of this cannon. this value will only used when sm_satellite_burst_delay_global is 0", FCVAR_NOTIFY);
+    g_ssSatelliteSettings[AMMO_TYPE_INFERNO].cvars.pushForce =         CreateConVar("sm_satellite_ammo_inferno_push_force",        "600.0",    "Push force of this cannon. this value will only used when sm_satellite_push_force_global is 0");
     g_ssSatelliteSettings[AMMO_TYPE_INFERNO].cvars.ammoAbillity1 =     CreateConVar(DUMMY_CVAR_NAME,              "0",    DUMMY_CVAR_DESCRIPTION, FCVAR_DONTRECORD);
     g_ssSatelliteSettings[AMMO_TYPE_INFERNO].cvars.ammoAbillity2 =     CreateConVar(DUMMY_CVAR_NAME,              "0",    DUMMY_CVAR_DESCRIPTION, FCVAR_DONTRECORD);
-    g_ssSatelliteSettings[AMMO_TYPE_INFERNO].cvars.hasFriendlyFire =   CreateConVar("sm_satellite_ammo_inferno_friendly_fire",            "1",        "0:OFF 1:ON", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+    g_ssSatelliteSettings[AMMO_TYPE_INFERNO].cvars.hasFriendlyFire =   CreateConVar("sm_satellite_ammo_inferno_friendly_fire",            "1",        "0:OFF 1:ON. This value is only be used when sm_satellite_friendly_fire_global is 0", FCVAR_NOTIFY, true, 0.0, true, 1.0);
     g_ssSatelliteSettings[AMMO_TYPE_INFERNO].cvars.addChangeHook(OnPluginSettingsUpdated);
     g_ssSatelliteSettings[AMMO_TYPE_INFERNO].updateCache();
 
@@ -387,11 +387,11 @@ public void OnPluginStart() {
     g_ssSatelliteSettings[AMMO_TYPE_JUDGEMENT].cvars.maxUses =           CreateConVar("sm_satellite_ammo_judgement_limit",             "5",        "Limit of uses. reset timing is depends on usage_reset_timing cvar", FCVAR_NOTIFY);
     g_ssSatelliteSettings[AMMO_TYPE_JUDGEMENT].cvars.cooldown =          CreateConVar("sm_satellite_ammo_judgement_cooldown",          "0.0",      "Cooldown per shot. 0 means you can use immediately when your guns reloaded.", FCVAR_NOTIFY);
     g_ssSatelliteSettings[AMMO_TYPE_JUDGEMENT].cvars.usageResetTiming =  CreateConVar("sm_satellite_ammo_judgement_usage_reset_timing","0",        "Reset timing of limit of uses. //TODO_DESCRIPTION_RESET_TIMING", FCVAR_NOTIFY);
-    g_ssSatelliteSettings[AMMO_TYPE_JUDGEMENT].cvars.burstDelay =        CreateConVar("sm_satellite_ammo_judgement_burst_delay",       "1.0",      "Launching delay of this cannon. this value will only used when sm_satellite_global_burst_delay is 0", FCVAR_NOTIFY);
-    g_ssSatelliteSettings[AMMO_TYPE_JUDGEMENT].cvars.pushForce =         CreateConVar("sm_satellite_ammo_judgement_push_force",        "600.0",    "Push force of this cannon. this value will only used when sm_satellite_global_push_force is 0");
+    g_ssSatelliteSettings[AMMO_TYPE_JUDGEMENT].cvars.burstDelay =        CreateConVar("sm_satellite_ammo_judgement_burst_delay",       "1.0",      "Launching delay of this cannon. this value will only used when sm_satellite_burst_delay_global is 0", FCVAR_NOTIFY);
+    g_ssSatelliteSettings[AMMO_TYPE_JUDGEMENT].cvars.pushForce =         CreateConVar("sm_satellite_ammo_judgement_push_force",        "600.0",    "Push force of this cannon. this value will only used when sm_satellite_push_force_global is 0");
     g_ssSatelliteSettings[AMMO_TYPE_JUDGEMENT].cvars.ammoAbillity1 =     CreateConVar(DUMMY_CVAR_NAME,              "0",    DUMMY_CVAR_DESCRIPTION, FCVAR_DONTRECORD);
     g_ssSatelliteSettings[AMMO_TYPE_JUDGEMENT].cvars.ammoAbillity2 =     CreateConVar(DUMMY_CVAR_NAME,              "0",    DUMMY_CVAR_DESCRIPTION, FCVAR_DONTRECORD);
-    g_ssSatelliteSettings[AMMO_TYPE_JUDGEMENT].cvars.hasFriendlyFire =   CreateConVar("sm_satellite_ammo_judgement_friendly_fire",            "1",        "0:OFF 1:ON", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+    g_ssSatelliteSettings[AMMO_TYPE_JUDGEMENT].cvars.hasFriendlyFire =   CreateConVar("sm_satellite_ammo_judgement_friendly_fire",            "1",        "0:OFF 1:ON. This value is only be used when sm_satellite_friendly_fire_global is 0", FCVAR_NOTIFY, true, 0.0, true, 1.0);
     g_ssSatelliteSettings[AMMO_TYPE_JUDGEMENT].cvars.addChangeHook(OnPluginSettingsUpdated);
     g_ssSatelliteSettings[AMMO_TYPE_JUDGEMENT].updateCache();
 
