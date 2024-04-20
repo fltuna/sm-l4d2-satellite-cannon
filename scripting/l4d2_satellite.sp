@@ -434,7 +434,7 @@ public void OnMapStart() {
 }
 
 void initPlayersAmmo() {
-    for(int i = 0; i <= MaxClients; i++) {
+    for(int i = 1; i <= MaxClients; i++) {
         SatelliteAmmo blizzard;
         SatelliteAmmo inferno;
         SatelliteAmmo judgement;
@@ -454,7 +454,7 @@ void initPlayersAmmo() {
 }
 
 void resetAllPlayersAmmo() {
-    for(int i = 0; i <= MaxClients; i++) {
+    for(int i = 1; i <= MaxClients; i++) {
         resetPlayerAmmo(i, AMMO_TYPE_ALL);
     }
 }
@@ -987,8 +987,8 @@ public void castInferno(int client) {
     ShowParticle(g_spSatellitePlayers[client].tracePosition, PARTICLE_FIRE02, 3.0);
 
     /* Ignite special infected and survivor in the radius */
-    for(int i = 0; i <= MaxClients; i++) {
-        if(!IsClientInGame(i)) 
+    for(int i = 1; i <= MaxClients; i++) {
+        if(!IsClientConnected(i) || !IsClientInGame(i)) 
             continue;
 
         GetClientEyePosition(i, eyePosition);
@@ -1014,7 +1014,7 @@ public void castInferno(int client) {
     float entPos[3];
 
     //MaxEntities = GetMaxEntities();
-    for(int i = 0; i <= MaxClients; i++)
+    for(int i = 1; i <= MaxClients; i++)
     {
         if(!IsValidEdict(i) || !IsValidEntity(i))
             continue;
