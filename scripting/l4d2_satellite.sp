@@ -340,7 +340,7 @@ public void OnPluginStart() {
     g_ssSatelliteSettings[AMMO_TYPE_BLIZZARD].cvars.ammoAbillity2 =     CreateConVar(DUMMY_CVAR_NAME,              "0",    DUMMY_CVAR_DESCRIPTION, FCVAR_DONTRECORD);
     g_ssSatelliteSettings[AMMO_TYPE_BLIZZARD].cvars.hasFriendlyFire =     CreateConVar("sm_satellite_ammo_blizzard_friendly_fire",            "1",        "0:OFF 1:ON", FCVAR_NOTIFY, true, 0.0, true, 1.0);
     g_ssSatelliteSettings[AMMO_TYPE_BLIZZARD].cvars.addChangeHook(OnPluginSettingsUpdated);
-
+    g_ssSatelliteSettings[AMMO_TYPE_BLIZZARD].updateCache();
 
     SatelliteSettingsCvars infernoCvars;
     SatelliteSettingsValues infernoValues;
@@ -359,6 +359,7 @@ public void OnPluginStart() {
     g_ssSatelliteSettings[AMMO_TYPE_INFERNO].cvars.ammoAbillity2 =     CreateConVar(DUMMY_CVAR_NAME,              "0",    DUMMY_CVAR_DESCRIPTION, FCVAR_DONTRECORD);
     g_ssSatelliteSettings[AMMO_TYPE_INFERNO].cvars.hasFriendlyFire =     CreateConVar("sm_satellite_ammo_inferno_friendly_fire",            "1",        "0:OFF 1:ON", FCVAR_NOTIFY, true, 0.0, true, 1.0);
     g_ssSatelliteSettings[AMMO_TYPE_INFERNO].cvars.addChangeHook(OnPluginSettingsUpdated);
+    g_ssSatelliteSettings[AMMO_TYPE_INFERNO].updateCache();
 
 
     SatelliteSettingsCvars judgementCvars;
@@ -378,6 +379,7 @@ public void OnPluginStart() {
     g_ssSatelliteSettings[AMMO_TYPE_JUDGEMENT].cvars.ammoAbillity2 =     CreateConVar(DUMMY_CVAR_NAME,              "0",    DUMMY_CVAR_DESCRIPTION, FCVAR_DONTRECORD);
     g_ssSatelliteSettings[AMMO_TYPE_JUDGEMENT].cvars.hasFriendlyFire =     CreateConVar("sm_satellite_ammo_judgement_friendly_fire",            "1",        "0:OFF 1:ON", FCVAR_NOTIFY, true, 0.0, true, 1.0);
     g_ssSatelliteSettings[AMMO_TYPE_JUDGEMENT].cvars.addChangeHook(OnPluginSettingsUpdated);
+    g_ssSatelliteSettings[AMMO_TYPE_JUDGEMENT].updateCache();
 
 
     HookEvent("weapon_fire", onWeaponFired);
@@ -439,7 +441,15 @@ void initPlayersAmmo() {
         g_spSatellitePlayers[i].ammoBlizzard = blizzard;
         g_spSatellitePlayers[i].ammoInferno = inferno;
         g_spSatellitePlayers[i].ammoJudgement = judgement;
+        g_spSatellitePlayers[i].ammoBlizzard.isInfinityAmmo = false;
+        g_spSatellitePlayers[i].ammoInferno.isInfinityAmmo = false;
+        g_spSatellitePlayers[i].ammoJudgement.isInfinityAmmo = false;
         resetPlayerAmmo(i, AMMO_TYPE_ALL);
+        if(isValidClient(i)) {
+            PrintToChatAll("Blizzard: %d", g_spSatellitePlayers[i].ammoBlizzard.usesLeft);
+            PrintToChatAll("Inferno: %d", g_spSatellitePlayers[i].ammoInferno.usesLeft);
+            PrintToChatAll("Judgement: %d", g_spSatellitePlayers[i].ammoJudgement.usesLeft);
+        }
     }
 }
 
@@ -473,6 +483,11 @@ void resetPlayerAmmo(int client, int ammoType) {
             g_spSatellitePlayers[client].ammoBlizzard.usesLeft = getSatelliteMaxUses(AMMO_TYPE_BLIZZARD);
             g_spSatellitePlayers[client].ammoInferno.usesLeft = getSatelliteMaxUses(AMMO_TYPE_INFERNO);
             g_spSatellitePlayers[client].ammoJudgement.usesLeft = getSatelliteMaxUses(AMMO_TYPE_JUDGEMENT);
+            if(isValidClient(client)) {
+                PrintToChatAll("Max uses blizzard: %d", getSatelliteMaxUses(AMMO_TYPE_BLIZZARD));
+                PrintToChatAll("Max uses inferno: %d", getSatelliteMaxUses(AMMO_TYPE_INFERNO));
+                PrintToChatAll("Max uses judgement: %d", getSatelliteMaxUses(AMMO_TYPE_JUDGEMENT));
+            }
         }
     }
 }
