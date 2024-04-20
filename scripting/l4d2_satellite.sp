@@ -562,6 +562,9 @@ public void ResetParameter()
 *******************************************************/    
 public Action onWeaponFired(Handle event, const char[] name, bool dontBroadcast)
 {
+    if(!g_psPluginSettings.values.enabled)
+        return Plugin_Continue;
+
     int attacker = GetClientOfUserId(GetEventInt(event, "userid"));
 
     /* Bot can't use */
@@ -578,9 +581,6 @@ public Action onWeaponFired(Handle event, const char[] name, bool dontBroadcast)
     
     /* Admin only? */
     if(!StrEqual(weapon, "pistol_magnum"))
-        return Plugin_Continue;
-    
-    if(!g_psPluginSettings.values.enabled)
         return Plugin_Continue;
     
     if(g_spSatellitePlayers[attacker].currentAmmoType <= AMMO_TYPE_ALL)
@@ -621,6 +621,9 @@ public Action onWeaponFired(Handle event, const char[] name, bool dontBroadcast)
 
 public Action onItemPickUp(Handle event, const char[] name, bool dontBroadcast)
 {
+    if(!g_psPluginSettings.values.enabled)
+        return Plugin_Continue;
+
     int client = GetClientOfUserId(GetEventInt(event, "userid"));
 
     if(!isValidClient(client)) 
@@ -632,9 +635,6 @@ public Action onItemPickUp(Handle event, const char[] name, bool dontBroadcast)
     if(!StrEqual(item, "pistol_magnum"))
         return Plugin_Continue;
     
-    if(!g_psPluginSettings.values.enabled)
-        return Plugin_Continue;
-    
     /* Display hint how to switch mode */
     CreateTimer(0.3, DisplayInstructorHint, client);
     g_spSatellitePlayers[client].currentAmmoType = AMMO_TYPE_IDLE;
@@ -643,6 +643,9 @@ public Action onItemPickUp(Handle event, const char[] name, bool dontBroadcast)
 
 public Action OnPlayerRunCmd(int client, int &buttons)
 {
+    if(!g_psPluginSettings.values.enabled)
+        return Plugin_Continue;
+
     if(IsClientInGame(client) && IsPlayerAlive(client) && IsPlayerAlive(client) && GetClientTeam(client) == SURVIVOR)
     {
         /* If freezing, block mouse operation */
@@ -660,8 +663,7 @@ public Action OnPlayerRunCmd(int client, int &buttons)
             char weapon[64];
             GetClientWeapon(client, weapon, 64);
             
-            if (StrEqual(weapon, "weapon_pistol_magnum") &&
-                g_psPluginSettings.values.enabled)
+            if (StrEqual(weapon, "weapon_pistol_magnum"))
             {
                 /* Mode change menu */
                 ChangeMode(client);
@@ -1247,6 +1249,7 @@ public void CreateSparkEffect(int client, int size, int length)
 *******************************************************/
 
 bool checkSatelliteCanShoot(int client, SatellitePlayer player) {
+
     switch(player.currentAmmoType) {
         case AMMO_TYPE_ALL, AMMO_TYPE_IDLE: {
             return false;
