@@ -66,9 +66,9 @@ enum {
 
 // Reset timings of usage limit 
 enum {
-    ROUND_START = 0,
-    MAP_START,
-    ON_DEATH,
+    RT_ROUND_START = (1 << 0),
+    RT_MAP_START = (1 << 1),
+    RT_ON_DEATH = (1 << 2),
 }
 
 // Laser Effect type
@@ -187,6 +187,7 @@ enum struct PluginSettingsCVars {
     ConVar laserVisualHeight;
     ConVar adminOnly;
     ConVar adminFlags;
+    ConVar usageResetTiming;
 
     void addChangeHook(ConVarChanged callback) {
         this.enabled.AddChangeHook(callback);
@@ -199,6 +200,7 @@ enum struct PluginSettingsCVars {
         this.laserVisualHeight.AddChangeHook(callback);
         this.adminOnly.AddChangeHook(callback);
         this.adminFlags.AddChangeHook(callback);
+        this.usageResetTiming.AddChangeHook(callback);
     }
 }
 
@@ -213,6 +215,7 @@ enum struct PluginSettingsValues {
     int laserVisualHeight;
     int adminOnly;
     char adminFlags;
+    int usageResetTiming;
 
     void setValues(
         ConVar enabled,
@@ -224,7 +227,8 @@ enum struct PluginSettingsValues {
         ConVar globalFriendlyFire,
         ConVar laserVisualHeight,
         ConVar adminOnly,
-        ConVar adminFlags
+        ConVar adminFlags,
+        ConVar usageResetTiming
     ) {
         this.enabled = enabled.BoolValue;
         this.burstDelay = burstDelay.FloatValue;
@@ -236,7 +240,48 @@ enum struct PluginSettingsValues {
         this.laserVisualHeight = laserVisualHeight.IntValue;
         this.adminOnly = adminOnly.IntValue;
         GetConVarString(adminFlags, this.adminFlags, sizeof(this.adminFlags));
+        this.usageResetTiming = getResetTiming(usageResetTiming.IntValue);
     }
+}
+
+// I think there is a better way, But I don't have math knowledge to solve this.
+int getResetTiming(int resetTiming) {
+    int toReturn;
+    switch(resetTiming) {
+        case 1: {
+            toReturn |= RT_ROUND_START;
+        }
+        case 2: {
+            toReturn |= RT_MAP_START;
+        }
+        case 4: {
+            toReturn |= RT_ON_DEATH;
+        }
+
+        case 3: {
+            toReturn |= RT_ROUND_START;
+            toReturn |= RT_MAP_START;
+        }
+        case 5: {
+            toReturn |= RT_ROUND_START;
+            toReturn |= RT_ON_DEATH;
+        }
+        case 6: {
+            toReturn |= RT_MAP_START;
+            toReturn |= RT_ON_DEATH;
+        }
+        case 7: {
+            toReturn |= RT_ROUND_START;
+            toReturn |= RT_MAP_START;
+            toReturn |= RT_ON_DEATH;
+        }
+
+        default: {
+            toReturn = 0;
+        }
+    }
+    
+    return toReturn;
 }
 
 enum struct PluginSettings {
@@ -254,7 +299,8 @@ enum struct PluginSettings {
             this.cvars.globalFriendlyFire,
             this.cvars.laserVisualHeight,
             this.cvars.adminOnly,
-            this.cvars.adminFlags
+            this.cvars.adminFlags,
+            this.cvars.usageResetTiming
         );
     }
 }
@@ -327,6 +373,7 @@ public void OnPluginStart() {
     g_psPluginSettings.cvars.globalFriendlyFire =   CreateConVar("sm_satellite_friendly_fire_global",      "1.0",      "Toggle global friendly fire. When set to 0 it uses individual push force based on satellite ammo settings.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
     g_psPluginSettings.cvars.adminFlags =           CreateConVar("sm_satellite_admin_flags",            "z",        "SourceMod admin flag", FCVAR_NOTIFY);
     g_psPluginSettings.cvars.adminOnly =            CreateConVar("sm_satellite_admin_only",             "1.0",      "Toggle sattelite cannon admin only.", FCVAR_NOTIFY, true, 0.0, true, 2.0);
+    g_psPluginSettings.cvars.usageResetTiming =     CreateConVar("sm_satellite_usage_reset_timing",             "1",      "When ammo will reset. | 1: Round start, 2: Map start, 4: Death | If you want to use multiple timings you can set the combined number. For example Round start and death is 5.", FCVAR_NOTIFY);
     g_psPluginSettings.cvars.addChangeHook(OnPluginSettingsUpdated);
     g_psPluginSettings.updateCache();
 
@@ -393,6 +440,7 @@ public void OnPluginStart() {
     HookEvent("weapon_fire", onWeaponFired);
     HookEvent("item_pickup", onItemPickUp);
     HookEvent("round_start", onRoundStart);
+    HookEvent("player_death", onPlayerDeath);
     g_hActiveWeapon = FindSendPropInfo("CTerrorPlayer", "m_hActiveWeapon");
     g_hiClip1 = FindSendPropInfo("CBaseCombatWeapon", "m_iClip1");
 
@@ -481,6 +529,9 @@ public void OnMapStart() {
     PrecacheSound(SOUND_IMPACT03, true);
     PrecacheSound(SOUND_FREEZE, true);
     PrecacheSound(SOUND_DEFROST, true);
+    if(g_psPluginSettings.values.usageResetTiming & RT_MAP_START) {
+        resetAllPlayersAmmo();
+    }
 }
 
 void initPlayersAmmo() {
@@ -536,12 +587,20 @@ bool isValidClient(int client) {
     return client > 0 && client <= MaxClients && IsClientConnected(client) && IsClientInGame(client) && !IsFakeClient(client);
 }
 
-
+public Action onPlayerDeath(Handle event, const char[] name, bool dontBroadcast) {
+    if(g_psPluginSettings.values.usageResetTiming & RT_ON_DEATH) {
+        int client = GetClientOfUserId(GetEventInt(event, "userid"));
+        resetPlayerAmmo(client, AMMO_TYPE_ALL);
+    }
+    return Plugin_Continue;
+}
 
 public Action onRoundStart(Handle event, const char[] name, bool dontBroadcast)
 {
+    if(g_psPluginSettings.values.usageResetTiming & RT_ROUND_START) {
+        resetAllPlayersAmmo();
+    }
     ResetParameter();
-    resetAllPlayersAmmo();
     return Plugin_Continue;
 }
 
