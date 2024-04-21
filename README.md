@@ -9,6 +9,10 @@
 - Rewrite with new syntax
 - Code is more readable (Maybe)
 
+### Bug fixes
+
+- Ring closing effect is not consistent with burst delay settings
+
 ### Translations support
 
 - Menu
