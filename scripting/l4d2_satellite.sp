@@ -739,6 +739,7 @@ public Action onWeaponFired(Handle event, const char[] name, bool dontBroadcast)
     DataPack pack = new DataPack();
     pack.WriteCell(attacker);
     pack.WriteFloatArray(g_spSatellitePlayers[attacker].tracePosition, 3);
+    pack.WriteCell(g_spSatellitePlayers[attacker].lastAmmoType);
     CreateTimer(0.2, TraceTimer, pack);
     subtractSatelliteUses(attacker);
     notifyWhenAmmoEmpty(attacker);
@@ -904,16 +905,15 @@ public Action SatelliteTimer(Handle timer, DataPack pack)
     int client = pack.ReadCell();
     float tracePos[3];
     pack.ReadFloatArray(tracePos, 3);
+    int ammoType = pack.ReadCell();
 
     if(!IsValidEntity(client) || !IsClientInGame(client) || !IsPlayerAlive(client))
         return Plugin_Handled;
 
-    int ammoType = g_spSatellitePlayers[client].lastAmmoType;
-
     if(ammoType <= AMMO_TYPE_ALL)
         ammoType = AMMO_TYPE_JUDGEMENT;
 
-    switch(g_spSatellitePlayers[client].lastAmmoType) {
+    switch(ammoType) {
         case AMMO_TYPE_BLIZZARD: {
             Blizzard(client, tracePos);
         }
