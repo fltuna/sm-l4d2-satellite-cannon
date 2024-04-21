@@ -885,15 +885,16 @@ public Action TraceTimer(Handle timer, DataPack pack)
     int client = pack.ReadCell();
     float tracePos[3];
     pack.ReadFloatArray(tracePos, 3);
+    int ammoType = pack.ReadCell();
     
     /* Ring laser effect */
-    CreateRingEffect(tracePos, 150, 150, 230, 230, getClientSatelliteRadius(client),
-                getClientSatelliteBurstDelay(client));
+    CreateRingEffect(tracePos, 150, 150, 230, 230, getSatelliteRadius(ammoType),
+                getSatelliteBurstDelay(ammoType));
     
     /* Launch satellite cannon */
     raycount[client] = 0;
 
-    CreateTimer(getClientSatelliteBurstDelay(client),
+    CreateTimer(getSatelliteBurstDelay(ammoType),
                 SatelliteTimer, pack);
     
     return Plugin_Continue;
@@ -1428,11 +1429,6 @@ stock float getSatellitePushForce(int ammoType) {
     return g_ssSatelliteSettings[ammoType].values.pushForce;
 }
 
-
-stock float getClientSatelliteRadius(int client) {
-    return getSatelliteRadius(g_spSatellitePlayers[client].currentAmmoType);
-}
-
 stock float getSatelliteRadius(int ammoType) {
     return g_ssSatelliteSettings[ammoType].values.radius;
 }
@@ -1445,7 +1441,6 @@ stock float getClientSatelliteDamage(int client) {
 stock float getSatelliteDamage(int ammoType) {
     return g_ssSatelliteSettings[ammoType].values.damage;
 }
-
 
 stock float getClientSatelliteCooldown(int client) {
     return getSatelliteCooldown(g_spSatellitePlayers[client].currentAmmoType);
