@@ -1006,7 +1006,7 @@ public void Judgement(int client, float tracePos[3])
     LittleFlower(client, EXPLOSION_TYPE_EXPLODE, ammoType, tracePos);
     
     /* Push away */
-    PushAway(client, getSatellitePushForce(ammoType),
+    PushAway(tracePos, getSatellitePushForce(ammoType),
             getSatelliteRadius(ammoType), 0.5);
 }
 
@@ -1084,7 +1084,7 @@ public void Blizzard(int client, float tracePos[3])
         }
     }
     /* Push away */
-    PushAway(client, getSatellitePushForce(ammoType),
+    PushAway(tracePos, getSatellitePushForce(ammoType),
             getSatelliteRadius(ammoType), 0.5);
     
 }
@@ -1155,7 +1155,7 @@ public void castInferno(int client, float tracePos[3]) {
     }
 
     PushAway(
-        client,
+        tracePos,
         getSatellitePushForce(AMMO_TYPE_INFERNO),
         getSatelliteRadius(AMMO_TYPE_INFERNO),
         0.5
@@ -1487,7 +1487,7 @@ stock void DamageEffect(int attacker, int target, float damage)
 
 }
 
-public void PushAway(int client, float force, float radius, float duration)
+public void PushAway(float tracePosition[3], float force, float radius, float duration)
 {
     int push = CreateEntityByName("point_push");
     DispatchKeyValueFloat (push, "magnitude", force);
@@ -1495,7 +1495,7 @@ public void PushAway(int client, float force, float radius, float duration)
     SetVariantString("spawnflags 24");
     AcceptEntityInput(push, "AddOutput");
     DispatchSpawn(push);
-    TeleportEntity(push, g_spSatellitePlayers[client].tracePosition, NULL_VECTOR, NULL_VECTOR);
+    TeleportEntity(push, tracePosition, NULL_VECTOR, NULL_VECTOR);
     AcceptEntityInput(push, "Enable", -1, -1);
     CreateTimer(duration, DeletePushForce, push);
 }
