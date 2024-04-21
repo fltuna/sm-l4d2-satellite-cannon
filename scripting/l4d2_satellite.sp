@@ -861,17 +861,6 @@ public int ChangeModeMenu(Handle menu, MenuAction action, int client, int itemNu
             EmitSoundToClient(client, SOUND_NEGATIVE);
             g_spSatellitePlayers[client].currentAmmoType = AMMO_TYPE_IDLE;
         }
-        // Implement notifycation when ammo is out.
-        // if(itemNum != 3 && energy[client][itemNum+1] <= 0)
-        // {
-        //     PrintHintText(client, MESSAGE_EMPTY1);
-        //     EmitSoundToClient(client, SOUND_NEGATIVE);
-        //     g_spSatellitePlayers[client].currentAmmoType = AMMO_TYPE_IDLE;
-        // }
-        // else
-        // {
-        //     EmitSoundToClient(client, SOUND_SHOOT02);
-        // }
     }
     return 0;
 }
@@ -1406,20 +1395,11 @@ stock int getSatelliteUsageResetTiming(int ammoType) {
     return g_ssSatelliteSettings[ammoType].values.usageResetTiming;
 }
 
-stock float getClientSatelliteBurstDelay(int client) {
-    return getSatelliteBurstDelay(g_spSatellitePlayers[client].currentAmmoType);
-}
-
 stock float getSatelliteBurstDelay(int ammoType) {
     if(g_psPluginSettings.values.globalBurstDelay)
         return g_psPluginSettings.values.burstDelay;
     
     return g_ssSatelliteSettings[ammoType].values.burstDelay;
-}
-
-
-stock float getClientSatellitePushForce(int client) {
-    return getSatellitePushForce(g_spSatellitePlayers[client].currentAmmoType);
 }
 
 stock float getSatellitePushForce(int ammoType) {
@@ -1433,17 +1413,8 @@ stock float getSatelliteRadius(int ammoType) {
     return g_ssSatelliteSettings[ammoType].values.radius;
 }
 
-
-stock float getClientSatelliteDamage(int client) {
-    return getSatelliteDamage(g_spSatellitePlayers[client].currentAmmoType);
-}
-
 stock float getSatelliteDamage(int ammoType) {
     return g_ssSatelliteSettings[ammoType].values.damage;
-}
-
-stock float getClientSatelliteCooldown(int client) {
-    return getSatelliteCooldown(g_spSatellitePlayers[client].currentAmmoType);
 }
 
 stock float getSatelliteCooldown(int ammoType) {
@@ -1452,11 +1423,6 @@ stock float getSatelliteCooldown(int ammoType) {
 
 stock int getSatelliteMaxUses(int ammoType) {
     return g_ssSatelliteSettings[ammoType].values.maxUses;
-}
-
-
-stock bool clientSatelliteHasFriendlyFire(int client) {
-    return satelliteHasFriendlyFire(g_spSatellitePlayers[client].currentAmmoType);
 }
 
 stock bool satelliteHasFriendlyFire(int ammoType) {
