@@ -987,7 +987,7 @@ public void Judgement(int client)
         if (!satelliteHasFriendlyFire(ammoType) && i != client)
             continue;
 
-        DamageEffect(i, getSatelliteDamage(ammoType));
+        DamageEffect(client, i, getSatelliteDamage(ammoType));
     }
     /* Explode */
     LittleFlower(client, EXPLOSION_TYPE_EXPLODE, ammoType);
@@ -1065,7 +1065,7 @@ public void Blizzard(int client)
                     EmitAmbientSound(SOUND_FREEZE, entPos, i, SNDLEVEL_RAIDSIREN);
                     TE_SetupGlowSprite(entPos, g_GlowSprite, 5.0, 3.0, 130);
                     TE_SendToAll();
-                    DamageEffect(i, 100.0);
+                    DamageEffect(client, i, 100.0);
                 }
             }
         }
@@ -1104,11 +1104,11 @@ public void castInferno(int client) {
                     continue;
 
                 ScreenFade(i, 200, 0, 0, 150, 80, 1);
-                DamageEffect(i, 5.0);
+                DamageEffect(client, i, 5.0);
             }
             case INFECTED: {
                 IgniteEntity(i, 10.0);
-                DamageEffect(i, getSatelliteDamage(AMMO_TYPE_INFERNO));
+                DamageEffect(client, i, getSatelliteDamage(AMMO_TYPE_INFERNO));
             }
         }
     }
@@ -1138,7 +1138,7 @@ public void castInferno(int client) {
             continue;
 
         IgniteEntity(i, 10.0);
-        DamageEffect(i, 50.0);
+        DamageEffect(client, i, 50.0);
     }
 
     PushAway(
@@ -1458,7 +1458,7 @@ stock bool satelliteHasFriendlyFire(int ammoType) {
     return g_ssSatelliteSettings[ammoType].values.hasFriendlyFire;
 }
 
-stock void DamageEffect(int target, float damage)
+stock void DamageEffect(int attacker, int target, float damage)
 {
     char tName[20];
     Format(tName, 20, "target%d", target);
@@ -1468,7 +1468,7 @@ stock void DamageEffect(int target, float damage)
     DispatchKeyValue(pointHurt, "DamageTarget", tName);
     DispatchKeyValue(pointHurt, "DamageType", "65536");
     DispatchSpawn(pointHurt);
-    addGlobalShotQueue(target, g_spSatellitePlayers[target].lastAmmoType);
+    addGlobalShotQueue(target, g_spSatellitePlayers[attacker].lastAmmoType);
     AcceptEntityInput(pointHurt, "Hurt");
     AcceptEntityInput(pointHurt, "Kill");
 
