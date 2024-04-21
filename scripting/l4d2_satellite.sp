@@ -887,7 +887,7 @@ public Action TraceTimer(Handle timer, DataPack pack)
     pack.ReadFloatArray(tracePos, 3);
     
     /* Ring laser effect */
-    CreateRingEffect(tracePos, 150, 150, 230, 230, 2.0,
+    CreateRingEffect(tracePos, 150, 150, 230, 230, getClientSatelliteRadius(client),
                 getClientSatelliteBurstDelay(client));
     
     /* Launch satellite cannon */
@@ -1027,7 +1027,7 @@ public void Blizzard(int client, float tracePos[3])
     CreateLaserEffect(client, 80, 80, 230, 230, 6.0, 1.0, LASER_EFFECT_TYPE_VERTICAL, tracePos);
     ShowParticle(tracePos, PARTICLE_FIREBLUE01, 0.7);
     ShowParticle(tracePos, PARTICLE_FIREBLUE02, 0.7);
-    TE_SetupBeamRingPoint(tracePos, 10.0, getSatelliteRadius(ammoType),
+    TE_SetupBeamRingPoint(tracePos, getSatelliteRadius(ammoType), 0.0,
                         g_BeamSprite, g_HaloSprite, 0, 10, 0.3, 10.0, 0.5,
                         {40, 40, 230, 230}, 400, 0);
     TE_SendToAll();
@@ -1289,7 +1289,7 @@ public void CreateRingEffect(float tracePosition[3], int colRed, int colGre, int
     color[2] = colBlu;
     color[3] = alpha;
     
-    TE_SetupBeamRingPoint(tracePosition, 300.0, 10.0, g_BeamSprite,
+    TE_SetupBeamRingPoint(tracePosition, width*2, 0.0, g_BeamSprite,
                         g_HaloSprite, 0, 10, duration, 4.0, 0.5,
                         {150, 150, 230, 230}, 80, 0);
     TE_SendToAll();
