@@ -732,11 +732,14 @@ public Action onWeaponFired(Handle event, const char[] name, bool dontBroadcast)
     /* Trace and show effect */
     GetTracePosition(attacker);
     EmitAmbientSound(SOUND_TRACING, g_spSatellitePlayers[attacker].tracePosition);
-    CreateLaserEffect(attacker, 150, 150, 230, 230, 0.5, 0.2, LASER_EFFECT_TYPE_NORMAL);
-    CreateSparkEffect(attacker, 1200, 5);
+    CreateLaserEffect(attacker, 150, 150, 230, 230, 0.5, 0.2, LASER_EFFECT_TYPE_NORMAL, g_spSatellitePlayers[attacker].tracePosition);
+    CreateSparkEffect(g_spSatellitePlayers[attacker].tracePosition, 1200, 5);
     
     /* Ready to launch */
-    CreateTimer(0.2, TraceTimer, attacker);
+    DataPack pack = new DataPack();
+    pack.WriteCell(attacker);
+    pack.WriteFloatArray(g_spSatellitePlayers[attacker].tracePosition, 3);
+    CreateTimer(0.2, TraceTimer, pack);
     subtractSatelliteUses(attacker);
     notifyWhenAmmoEmpty(attacker);
     
@@ -875,23 +878,33 @@ public int ChangeModeMenu(Handle menu, MenuAction action, int client, int itemNu
 /******************************************************
 *    Timer functions about launching
 *******************************************************/
-public Action TraceTimer(Handle timer, any client)
+public Action TraceTimer(Handle timer, DataPack pack)
 {
+    pack.Reset();
+    int client = pack.ReadCell();
+    float tracePos[3];
+    pack.ReadFloatArray(tracePos, 3);
+    
     /* Ring laser effect */
-    CreateRingEffect(client, 150, 150, 230, 230, 2.0,
+    CreateRingEffect(tracePos, 150, 150, 230, 230, 2.0,
                 getClientSatelliteBurstDelay(client));
     
     /* Launch satellite cannon */
     raycount[client] = 0;
-    
+
     CreateTimer(getClientSatelliteBurstDelay(client),
-                SatelliteTimer, client);
+                SatelliteTimer, pack);
     
     return Plugin_Continue;
 }
 
-public Action SatelliteTimer(Handle timer, any client)
+public Action SatelliteTimer(Handle timer, DataPack pack)
 {
+    pack.Reset();
+    int client = pack.ReadCell();
+    float tracePos[3];
+    pack.ReadFloatArray(tracePos, 3);
+
     if(!IsValidEntity(client) || !IsClientInGame(client) || !IsPlayerAlive(client))
         return Plugin_Handled;
 
@@ -902,13 +915,13 @@ public Action SatelliteTimer(Handle timer, any client)
 
     switch(g_spSatellitePlayers[client].lastAmmoType) {
         case AMMO_TYPE_BLIZZARD: {
-            Blizzard(client);
+            Blizzard(client, tracePos);
         }
         case AMMO_TYPE_INFERNO: {
-            castInferno(client);
+            castInferno(client, tracePos);
         }
         case AMMO_TYPE_JUDGEMENT: {
-            Judgement(client);
+            Judgement(client, tracePos);
         }
     }
 
@@ -963,16 +976,16 @@ void subtractSatelliteUses(int client) {
     }
 }
 
-public void Judgement(int client)
+public void Judgement(int client, float tracePos[3])
 {
     float pos[3];
     int ammoType = AMMO_TYPE_JUDGEMENT;
     
     /* Emit impact sound */
-    EmitAmbientSound(SOUND_IMPACT01, g_spSatellitePlayers[client].tracePosition);
+    EmitAmbientSound(SOUND_IMPACT01, tracePos);
     
     /* Laser effect */
-    CreateLaserEffect(client, 230, 230, 80, 230, 6.0, 1.0, LASER_EFFECT_TYPE_VERTICAL);
+    CreateLaserEffect(client, 230, 230, 80, 230, 6.0, 1.0, LASER_EFFECT_TYPE_VERTICAL, tracePos);
 
     /* Damage to special infected */
     for(int i = 1; i <= MaxClients; i ++)
@@ -981,7 +994,7 @@ public void Judgement(int client)
             continue;
         GetClientAbsOrigin(i, pos);
 
-        if(!(GetVectorDistance(pos, g_spSatellitePlayers[client].tracePosition) < getSatelliteRadius(ammoType)))
+        if(!(GetVectorDistance(pos, tracePos) < getSatelliteRadius(ammoType)))
             continue;
         
         if (!satelliteHasFriendlyFire(ammoType) && i != client)
@@ -990,14 +1003,14 @@ public void Judgement(int client)
         DamageEffect(client, i, getSatelliteDamage(ammoType));
     }
     /* Explode */
-    LittleFlower(client, EXPLOSION_TYPE_EXPLODE, ammoType);
+    LittleFlower(client, EXPLOSION_TYPE_EXPLODE, ammoType, tracePos);
     
     /* Push away */
     PushAway(client, getSatellitePushForce(ammoType),
             getSatelliteRadius(ammoType), 0.5);
 }
 
-public void Blizzard(int client)
+public void Blizzard(int client, float tracePos[3])
 {
 
     int MEspecialClassMag;
@@ -1007,14 +1020,14 @@ public void Blizzard(int client)
     int ammoType = AMMO_TYPE_BLIZZARD;
     
     /* Emit impact sound */
-    EmitAmbientSound(SOUND_IMPACT01, g_spSatellitePlayers[client].tracePosition);
-    EmitAmbientSound(SOUND_IMPACT02, g_spSatellitePlayers[client].tracePosition);
+    EmitAmbientSound(SOUND_IMPACT01, tracePos);
+    EmitAmbientSound(SOUND_IMPACT02, tracePos);
     
     /* Laser effect */
-    CreateLaserEffect(client, 80, 80, 230, 230, 6.0, 1.0, LASER_EFFECT_TYPE_VERTICAL);
-    ShowParticle(g_spSatellitePlayers[client].tracePosition, PARTICLE_FIREBLUE01, 0.7);
-    ShowParticle(g_spSatellitePlayers[client].tracePosition, PARTICLE_FIREBLUE02, 0.7);
-    TE_SetupBeamRingPoint(g_spSatellitePlayers[client].tracePosition, 10.0, getSatelliteRadius(ammoType),
+    CreateLaserEffect(client, 80, 80, 230, 230, 6.0, 1.0, LASER_EFFECT_TYPE_VERTICAL, tracePos);
+    ShowParticle(tracePos, PARTICLE_FIREBLUE01, 0.7);
+    ShowParticle(tracePos, PARTICLE_FIREBLUE02, 0.7);
+    TE_SetupBeamRingPoint(tracePos, 10.0, getSatelliteRadius(ammoType),
                         g_BeamSprite, g_HaloSprite, 0, 10, 0.3, 10.0, 0.5,
                         {40, 40, 230, 230}, 400, 0);
     TE_SendToAll();
@@ -1026,7 +1039,7 @@ public void Blizzard(int client)
             continue;
         GetClientEyePosition(i, pos);
 
-        if(!(GetVectorDistance(pos, g_spSatellitePlayers[client].tracePosition) < getSatelliteRadius(ammoType)))
+        if(!(GetVectorDistance(pos, tracePos) < getSatelliteRadius(ammoType)))
             continue;
         
         switch(GetClientTeam(i)) {
@@ -1060,7 +1073,7 @@ public void Blizzard(int client)
             if (StrContains(mName, "infected") != -1)
             {
                 GetEntPropVector(i, Prop_Send, "m_vecOrigin", entPos);
-                if (GetVectorDistance(g_spSatellitePlayers[client].tracePosition, entPos) < getSatelliteRadius(ammoType))
+                if (GetVectorDistance(tracePos, entPos) < getSatelliteRadius(ammoType))
                 {
                     EmitAmbientSound(SOUND_FREEZE, entPos, i, SNDLEVEL_RAIDSIREN);
                     TE_SetupGlowSprite(entPos, g_GlowSprite, 5.0, 3.0, 130);
@@ -1076,17 +1089,17 @@ public void Blizzard(int client)
     
 }
 
-public void castInferno(int client) {
+public void castInferno(int client, float tracePos[3]) {
     float eyePosition[3];
 
     /* Emit impact sound */
-    EmitAmbientSound(SOUND_IMPACT01, g_spSatellitePlayers[client].tracePosition);
-    EmitAmbientSound(SOUND_IMPACT03, g_spSatellitePlayers[client].tracePosition);
+    EmitAmbientSound(SOUND_IMPACT01, tracePos);
+    EmitAmbientSound(SOUND_IMPACT03, tracePos);
     
     /* Laser effect */
-    CreateLaserEffect(client, 230, 40, 40, 230, 6.0, 1.0, LASER_EFFECT_TYPE_VERTICAL);
-    ShowParticle(g_spSatellitePlayers[client].tracePosition, PARTICLE_FIRE01, 3.0);
-    ShowParticle(g_spSatellitePlayers[client].tracePosition, PARTICLE_FIRE02, 3.0);
+    CreateLaserEffect(client, 230, 40, 40, 230, 6.0, 1.0, LASER_EFFECT_TYPE_VERTICAL, tracePos);
+    ShowParticle(tracePos, PARTICLE_FIRE01, 3.0);
+    ShowParticle(tracePos, PARTICLE_FIRE02, 3.0);
 
     /* Ignite special infected and survivor in the radius */
     for(int i = 1; i <= MaxClients; i++) {
@@ -1095,7 +1108,7 @@ public void castInferno(int client) {
 
         GetClientEyePosition(i, eyePosition);
 
-        if(!(GetVectorDistance(eyePosition, g_spSatellitePlayers[client].tracePosition) < getSatelliteRadius(AMMO_TYPE_INFERNO)))
+        if(!(GetVectorDistance(eyePosition, tracePos) < getSatelliteRadius(AMMO_TYPE_INFERNO)))
             continue;
             
         switch(GetClientTeam(i)) {
@@ -1131,7 +1144,7 @@ public void castInferno(int client) {
         GetEntPropVector(i, Prop_Send, "m_vecOrigin", entPos);
         entPos[2] += 50;
 
-        if(!(GetVectorDistance(g_spSatellitePlayers[client].tracePosition, entPos) < getSatelliteRadius(AMMO_TYPE_INFERNO))) 
+        if(!(GetVectorDistance(tracePos, entPos) < getSatelliteRadius(AMMO_TYPE_INFERNO))) 
             continue;
 
         if(!satelliteHasFriendlyFire(AMMO_TYPE_INFERNO) && i != client)
@@ -1201,7 +1214,7 @@ public void GetTracePosition(int client)
         g_spSatellitePlayers[client].tracePosition[i] = tmpPos[i];
 }
 
-public void MoveTracePosition(int client, int min, int max)
+public void MoveTracePosition(float tracePosition[3], int min, int max)
 {
     int point = GetRandomInt(1, 4);
     int xOffset = GetRandomInt(min, max);
@@ -1209,23 +1222,23 @@ public void MoveTracePosition(int client, int min, int max)
     
     if(point == 1)
     {
-        g_spSatellitePlayers[client].tracePosition[0] -= xOffset;
-        g_spSatellitePlayers[client].tracePosition[1] += yOffset;
+        tracePosition[0] -= xOffset;
+        tracePosition[1] += yOffset;
     }
     else if(point == 2)
     {
-        g_spSatellitePlayers[client].tracePosition[0] += xOffset;
-        g_spSatellitePlayers[client].tracePosition[1] += yOffset;
+        tracePosition[0] += xOffset;
+        tracePosition[1] += yOffset;
     }
     else if(point == 3)
     {
-        g_spSatellitePlayers[client].tracePosition[0] -= xOffset;
-        g_spSatellitePlayers[client].tracePosition[1] -= yOffset;
+        tracePosition[0] -= xOffset;
+        tracePosition[1] -= yOffset;
     }
     else if(point == 4)
     {
-        g_spSatellitePlayers[client].tracePosition[0] += xOffset;
-        g_spSatellitePlayers[client].tracePosition[1] -= yOffset;
+        tracePosition[0] += xOffset;
+        tracePosition[1] -= yOffset;
     }
 }
 
@@ -1234,7 +1247,7 @@ public bool TraceEntityFilterPlayer(int entity, int contentsMask)
     return entity > MaxClients || !entity;
 }
 
-public void CreateLaserEffect(int client, int colRed, int colGre, int colBlu, int alpha, float width, float duration, int mode)
+public void CreateLaserEffect(int client, int colRed, int colGre, int colBlu, int alpha, float width, float duration, int mode, float tracePosition[3])
 {
     int color[4];
     color[0] = colRed;
@@ -1248,7 +1261,7 @@ public void CreateLaserEffect(int client, int colRed, int colGre, int colBlu, in
         float myPos[3];
         
         GetClientEyePosition(client, myPos);
-        TE_SetupBeamPoints(myPos, g_spSatellitePlayers[client].tracePosition, g_BeamSprite, 0, 0, 0,
+        TE_SetupBeamPoints(myPos, tracePosition, g_BeamSprite, 0, 0, 0,
                             duration, width, width, 1, 0.0, color, 0);
         TE_SendToAll();
     }
@@ -1258,9 +1271,9 @@ public void CreateLaserEffect(int client, int colRed, int colGre, int colBlu, in
         float lchPos[3];
         
         for(int i = 0; i < 3; i++)
-            lchPos[i] = g_spSatellitePlayers[client].tracePosition[i];
+            lchPos[i] = tracePosition[i];
         lchPos[2] += GetConVarInt(g_psPluginSettings.cvars.laserVisualHeight);
-        TE_SetupBeamPoints(lchPos, g_spSatellitePlayers[client].tracePosition, g_BeamSprite, 0, 0, 0,
+        TE_SetupBeamPoints(lchPos, tracePosition, g_BeamSprite, 0, 0, 0,
                             duration, width, width, 1, 2.0, color, 0);
         TE_SendToAll();
         TE_SetupGlowSprite(lchPos, g_GlowSprite, 1.5, 2.8, 230);
@@ -1268,7 +1281,7 @@ public void CreateLaserEffect(int client, int colRed, int colGre, int colBlu, in
     }
 }
 
-public void CreateRingEffect(int client, int colRed, int colGre, int colBlu, int alpha, float width, float duration)
+public void CreateRingEffect(float tracePosition[3], int colRed, int colGre, int colBlu, int alpha, float width, float duration)
 {
     int color[4];
     color[0] = colRed;
@@ -1276,20 +1289,20 @@ public void CreateRingEffect(int client, int colRed, int colGre, int colBlu, int
     color[2] = colBlu;
     color[3] = alpha;
     
-    TE_SetupBeamRingPoint(g_spSatellitePlayers[client].tracePosition, 300.0, 10.0, g_BeamSprite,
+    TE_SetupBeamRingPoint(tracePosition, 300.0, 10.0, g_BeamSprite,
                         g_HaloSprite, 0, 10, duration, 4.0, 0.5,
                         {150, 150, 230, 230}, 80, 0);
     TE_SendToAll();
 }
 
-public void CreateSparkEffect(int client, int size, int length)
+public void CreateSparkEffect(float tracePosition[3], int size, int length)
 {
     float spkVec[3];
     spkVec[0]=GetRandomFloat(-1.0, 1.0);
     spkVec[1]=GetRandomFloat(-1.0, 1.0);
     spkVec[2]=GetRandomFloat(-1.0, 1.0);
     
-    TE_SetupSparks(g_spSatellitePlayers[client].tracePosition, spkVec, size, length);
+    TE_SetupSparks(tracePosition, spkVec, size, length);
     TE_SendToAll();
 }
 
@@ -1487,13 +1500,13 @@ public void PushAway(int client, float force, float radius, float duration)
     CreateTimer(duration, DeletePushForce, push);
 }
 
-public void LittleFlower(int client, int explosionType, int ammoType)
+public void LittleFlower(int client, int explosionType, int ammoType, float tracePosition[3])
 {
     /* Cause fire(type=0) or explosion(type=1) */
     int entity = CreateEntityByName("prop_physics");
     if (IsValidEntity(entity))
     {
-        g_spSatellitePlayers[client].tracePosition[2] += 20;
+        tracePosition[2] += 20;
 
         switch(explosionType) {
             case EXPLOSION_TYPE_MOLOTOV: {
@@ -1514,7 +1527,7 @@ public void LittleFlower(int client, int explosionType, int ammoType)
 
         DispatchSpawn(entity);
         SetEntData(entity, GetEntSendPropOffs(entity, "m_CollisionGroup"), 1, 1, true);
-        TeleportEntity(entity, g_spSatellitePlayers[client].tracePosition, NULL_VECTOR, NULL_VECTOR);
+        TeleportEntity(entity, tracePosition, NULL_VECTOR, NULL_VECTOR);
         addGlobalShotQueue(client, ammoType);
         AcceptEntityInput(entity, "break");
     }

@@ -12,6 +12,7 @@
 ### Bug fixes
 
 - Ring closing effect is not consistent with burst delay settings
+- Trace position is not set to valid position when previous satellite cannon not detonated and fire new satellite cannon.
 
 ### Translations support
 
