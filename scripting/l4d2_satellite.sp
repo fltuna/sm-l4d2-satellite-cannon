@@ -329,11 +329,14 @@ enum struct SatellitePlayer {
     bool isActionBlocked;
     bool selfInjury;
     float tracePosition[3];
-
-    SatelliteAmmo ammoJudgement;
-    SatelliteAmmo ammoBlizzard;
-    SatelliteAmmo ammoInferno;
 }
+
+SatelliteAmmo g_spSatellitePlayersAmmo[MAXPLAYERS+1][SATELLITE_AMMO_TYPE_COUNT];
+
+SatellitePlayer g_spSatellitePlayers[MAXPLAYERS+1];
+SatelliteSettings g_ssSatelliteSettings[SATELLITE_AMMO_TYPE_COUNT];
+PluginSettings g_psPluginSettings;
+
 
 #define GLOBAL_MAX_SHOTS_IN_SAME_TIME 64
 int g_iCurrentGlobalShotOwner[GLOBAL_MAX_SHOTS_IN_SAME_TIME];
@@ -355,10 +358,6 @@ void addGlobalShotQueue(int client, int ammoType) {
     g_iCurrentGlobalShotOwner[g_iGlobalShotIndex] = client;
     g_iCurrentGlobalShotAmmoType[g_iGlobalShotIndex] = ammoType;
 }
-
-SatellitePlayer g_spSatellitePlayers[MAXPLAYERS+1];
-SatelliteSettings g_ssSatelliteSettings[SATELLITE_AMMO_TYPE_COUNT];
-PluginSettings g_psPluginSettings;
 
 int g_hiClip1;
 int g_hActiveWeapon;
@@ -573,15 +572,14 @@ public void OnMapStart() {
 
 void initPlayersAmmo() {
     for(int i = 1; i <= MaxClients; i++) {
-        SatelliteAmmo blizzard;
-        SatelliteAmmo inferno;
-        SatelliteAmmo judgement;
-        g_spSatellitePlayers[i].ammoBlizzard = blizzard;
-        g_spSatellitePlayers[i].ammoInferno = inferno;
-        g_spSatellitePlayers[i].ammoJudgement = judgement;
-        g_spSatellitePlayers[i].ammoBlizzard.isInfinityAmmo = false;
-        g_spSatellitePlayers[i].ammoInferno.isInfinityAmmo = false;
-        g_spSatellitePlayers[i].ammoJudgement.isInfinityAmmo = false;
+        for(int ammo = 0; ammo <= SATELLITE_AMMO_TYPE_COUNT-1; ammo++) {
+            if(ammo == AMMO_TYPE_ALL || ammo == AMMO_TYPE_IDLE)
+                continue;
+            
+            SatelliteAmmo newAmmo;
+            g_spSatellitePlayersAmmo[i][ammo] = newAmmo;
+            g_spSatellitePlayersAmmo[i][ammo].isInfinityAmmo = false;
+        }
         resetPlayerAmmo(i, AMMO_TYPE_ALL);
     }
 }
@@ -613,33 +611,15 @@ void resetPlayerAmmo(int client, int ammoType) {
         }
 
         case AMMO_TYPE_ALL: {
-            setPlayerAmmo(client, ammoType, getSatelliteMaxUses(AMMO_TYPE_BLIZZARD));
-            setPlayerAmmo(client, ammoType, getSatelliteMaxUses(AMMO_TYPE_INFERNO));
-            setPlayerAmmo(client, ammoType, getSatelliteMaxUses(AMMO_TYPE_JUDGEMENT));
+            resetPlayerAmmo(client, AMMO_TYPE_BLIZZARD);
+            resetPlayerAmmo(client, AMMO_TYPE_INFERNO);
+            resetPlayerAmmo(client, AMMO_TYPE_JUDGEMENT);
         }
     }
 }
 
 void setPlayerAmmo(int client, int ammoType, int ammoCount) {
-    switch(ammoType) {
-        case AMMO_TYPE_BLIZZARD: {
-            g_spSatellitePlayers[client].ammoBlizzard.usesLeft = ammoCount;
-        }
-
-        case AMMO_TYPE_INFERNO: {
-            g_spSatellitePlayers[client].ammoInferno.usesLeft = ammoCount;
-        }
-
-        case AMMO_TYPE_JUDGEMENT: {
-            g_spSatellitePlayers[client].ammoJudgement.usesLeft = ammoCount;
-        }
-
-        case AMMO_TYPE_ALL: {
-            g_spSatellitePlayers[client].ammoBlizzard.usesLeft = ammoCount;
-            g_spSatellitePlayers[client].ammoInferno.usesLeft = ammoCount;
-            g_spSatellitePlayers[client].ammoJudgement.usesLeft = ammoCount;
-        }
-    }
+    g_spSatellitePlayersAmmo[client][ammoType].usesLeft = ammoCount;
 }
 
 bool isValidClient(int client) {
@@ -809,11 +789,11 @@ public void ChangeMode(int client)
     char mStrJud[64], mStrBli[64], mStrInf[64], mStrIdle[64],_ammoName[32];
 
     getAmmoName(_ammoName, sizeof(_ammoName), AMMO_TYPE_BLIZZARD, client);
-    Format(mStrBli, sizeof(mStrBli), "%s %t", _ammoName, "sc menu ammo left", g_spSatellitePlayers[client].ammoBlizzard.usesLeft);
+    Format(mStrBli, sizeof(mStrBli), "%s %t", _ammoName, "sc menu ammo left", g_spSatellitePlayersAmmo[client][AMMO_TYPE_BLIZZARD].usesLeft);
     getAmmoName(_ammoName, sizeof(_ammoName), AMMO_TYPE_INFERNO, client);
-    Format(mStrInf, sizeof(mStrInf), "%s %t", _ammoName, "sc menu ammo left", g_spSatellitePlayers[client].ammoInferno.usesLeft);
+    Format(mStrInf, sizeof(mStrInf), "%s %t", _ammoName, "sc menu ammo left", g_spSatellitePlayersAmmo[client][AMMO_TYPE_INFERNO].usesLeft);
     getAmmoName(_ammoName, sizeof(_ammoName), AMMO_TYPE_JUDGEMENT, client);
-    Format(mStrJud, sizeof(mStrJud), "%s %t", _ammoName, "sc menu ammo left", g_spSatellitePlayers[client].ammoJudgement.usesLeft);
+    Format(mStrJud, sizeof(mStrJud), "%s %t", _ammoName, "sc menu ammo left", g_spSatellitePlayersAmmo[client][AMMO_TYPE_JUDGEMENT].usesLeft);
     getAmmoName(_ammoName, sizeof(_ammoName), AMMO_TYPE_IDLE, client);
     Format(mStrIdle, sizeof(mStrIdle), "%s", _ammoName);
     
@@ -919,51 +899,24 @@ public Action SatelliteTimer(Handle timer, DataPack pack)
 }
 
 void notifyWhenAmmoEmpty(int client) {
-    switch(g_spSatellitePlayers[client].currentAmmoType) {
-        case AMMO_TYPE_BLIZZARD: {
-            if(g_spSatellitePlayers[client].ammoBlizzard.usesLeft < 1) {
-                printEmptyMessage(client, g_spSatellitePlayers[client].currentAmmoType);
-                g_spSatellitePlayers[client].currentAmmoType = AMMO_TYPE_IDLE;
-            }
-        }
+    int ammoType = g_spSatellitePlayers[client].currentAmmoType;
 
-        case AMMO_TYPE_INFERNO: {
-            if(g_spSatellitePlayers[client].ammoInferno.usesLeft < 1) {
-                printEmptyMessage(client, g_spSatellitePlayers[client].currentAmmoType);
-                g_spSatellitePlayers[client].currentAmmoType = AMMO_TYPE_IDLE;
-            }
-        }
-
-        case AMMO_TYPE_JUDGEMENT: {
-            if(g_spSatellitePlayers[client].ammoJudgement.usesLeft < 1) {
-                printEmptyMessage(client, g_spSatellitePlayers[client].currentAmmoType);
-                g_spSatellitePlayers[client].currentAmmoType = AMMO_TYPE_IDLE;
-            }
-        }
+    if(g_spSatellitePlayersAmmo[client][ammoType].isAmmoEmpty()) {
+        printEmptyMessage(client, g_spSatellitePlayers[client].currentAmmoType);
+        g_spSatellitePlayers[client].currentAmmoType = AMMO_TYPE_IDLE;
     }
 }
 
 void subtractSatelliteUses(int client) {
-    switch(g_spSatellitePlayers[client].currentAmmoType) {
-        case AMMO_TYPE_ALL, AMMO_TYPE_IDLE: {
+    int ammoType = g_spSatellitePlayers[client].currentAmmoType;
 
-        }
+    if(ammoType == AMMO_TYPE_ALL || ammoType == AMMO_TYPE_IDLE)
+        return;
 
-        case AMMO_TYPE_BLIZZARD: {
-            if(!g_spSatellitePlayers[client].ammoBlizzard.isInfinityAmmo)
-                g_spSatellitePlayers[client].ammoBlizzard.usesLeft--;
-        }
+    if(g_spSatellitePlayersAmmo[client][ammoType].isInfinityAmmo)
+        return;
 
-        case AMMO_TYPE_INFERNO: {
-            if(!g_spSatellitePlayers[client].ammoInferno.isInfinityAmmo)
-                g_spSatellitePlayers[client].ammoInferno.usesLeft--;
-        }
-
-        case AMMO_TYPE_JUDGEMENT: {
-            if(!g_spSatellitePlayers[client].ammoJudgement.isInfinityAmmo)
-                g_spSatellitePlayers[client].ammoJudgement.usesLeft--;
-        }
-    }
+    g_spSatellitePlayersAmmo[client][ammoType].usesLeft--;
 }
 
 public void Judgement(int client, float tracePos[3])
@@ -1302,41 +1255,17 @@ public void CreateSparkEffect(float tracePosition[3], int size, int length)
 
 bool checkSatelliteCanShoot(int client) {
 
-    switch(g_spSatellitePlayers[client].currentAmmoType) {
-        case AMMO_TYPE_ALL, AMMO_TYPE_IDLE: {
-            return false;
-        }
+    int ammoType = g_spSatellitePlayers[client].currentAmmoType;
 
-        case AMMO_TYPE_BLIZZARD: {
-            if(!isSatelliteEnabled(AMMO_TYPE_BLIZZARD)) {
-                return false;
-            }
+    if(ammoType == AMMO_TYPE_ALL || ammoType == AMMO_TYPE_IDLE)
+        return false;
+    
+    if(!isSatelliteEnabled(ammoType))
+        return false;
+    
+    if(g_spSatellitePlayersAmmo[client][ammoType].isAmmoEmpty())
+        return false;
 
-            if(g_spSatellitePlayers[client].ammoBlizzard.isAmmoEmpty()) {
-                return false;
-            }
-        }
-
-        case AMMO_TYPE_INFERNO: {
-            if(!isSatelliteEnabled(AMMO_TYPE_BLIZZARD)) {
-                return false;
-            }
-
-            if(g_spSatellitePlayers[client].ammoInferno.isAmmoEmpty()) {
-                return false;
-            }
-        }
-
-        case AMMO_TYPE_JUDGEMENT: {
-            if(!isSatelliteEnabled(AMMO_TYPE_BLIZZARD)) {
-                return false;
-            }
-            
-            if(g_spSatellitePlayers[client].ammoJudgement.isAmmoEmpty()) {
-                return false;
-            }
-        }
-    }
     return true;
 }
 
