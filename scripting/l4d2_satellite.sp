@@ -1277,7 +1277,7 @@ public void CreateRingEffect(int client, int colRed, int colGre, int colBlu, int
     color[3] = alpha;
     
     TE_SetupBeamRingPoint(g_spSatellitePlayers[client].tracePosition, 300.0, 10.0, g_BeamSprite,
-                        g_HaloSprite, 0, 10, 1.2, 4.0, 0.5,
+                        g_HaloSprite, 0, 10, duration, 4.0, 0.5,
                         {150, 150, 230, 230}, 80, 0);
     TE_SendToAll();
 }
