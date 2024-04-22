@@ -57,12 +57,12 @@
 // Satellite ammo type.
 #define SATELLITE_AMMO_TYPE_COUNT 6
 enum {
-    AMMO_TYPE_IDLE = 0,
-    AMMO_TYPE_ALL,
-    AMMO_TYPE_JUDGEMENT,
+    AMMO_TYPE_ALL = 0,
     AMMO_TYPE_BLIZZARD,
     AMMO_TYPE_INFERNO,
+    AMMO_TYPE_JUDGEMENT,
     AMMO_TYPE_MINIGUN,
+    AMMO_TYPE_IDLE,
 }
 
 // Reset timings of usage limit 
@@ -714,7 +714,7 @@ public Action onWeaponFired(Handle event, const char[] name, bool dontBroadcast)
     if(!StrEqual(weapon, "pistol_magnum"))
         return Plugin_Continue;
     
-    if(g_spSatellitePlayers[attacker].currentAmmoType <= AMMO_TYPE_ALL)
+    if(g_spSatellitePlayers[attacker].currentAmmoType == AMMO_TYPE_ALL || g_spSatellitePlayers[attacker].currentAmmoType == AMMO_TYPE_IDLE)
         return Plugin_Continue;
 
     if(!checkSatelliteCanShoot(attacker)) {
@@ -819,26 +819,25 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 
 public void ChangeMode(int client)
 {
-    char mStrJud[64], mStrBli[64], mStrInf[64], mStrIdle[64], mStrMinigun[64], _ammoName[32];
-
-    getAmmoName(_ammoName, sizeof(_ammoName), AMMO_TYPE_BLIZZARD, client);
-    Format(mStrBli, sizeof(mStrBli), "%s %t", _ammoName, "sc menu ammo left", g_spSatellitePlayersAmmo[client][AMMO_TYPE_BLIZZARD].usesLeft);
-    getAmmoName(_ammoName, sizeof(_ammoName), AMMO_TYPE_INFERNO, client);
-    Format(mStrInf, sizeof(mStrInf), "%s %t", _ammoName, "sc menu ammo left", g_spSatellitePlayersAmmo[client][AMMO_TYPE_INFERNO].usesLeft);
-    getAmmoName(_ammoName, sizeof(_ammoName), AMMO_TYPE_JUDGEMENT, client);
-    Format(mStrJud, sizeof(mStrJud), "%s %t", _ammoName, "sc menu ammo left", g_spSatellitePlayersAmmo[client][AMMO_TYPE_JUDGEMENT].usesLeft);
-    getAmmoName(_ammoName, sizeof(_ammoName), AMMO_TYPE_MINIGUN, client);
-    Format(mStrMinigun, sizeof(mStrMinigun), "%s %t", _ammoName, "sc menu ammo left", g_spSatellitePlayersAmmo[client][AMMO_TYPE_MINIGUN].usesLeft);
-    getAmmoName(_ammoName, sizeof(_ammoName), AMMO_TYPE_IDLE, client);
-    Format(mStrIdle, sizeof(mStrIdle), "%s", _ammoName);
-    
     Handle menu = CreateMenu(ChangeModeMenu);
     SetMenuTitle(menu, "%t", "sc menu title");
-    AddMenuItem(menu, "ammo_blizzard", mStrBli);
-    AddMenuItem(menu, "ammo_inferno", mStrInf);
-    AddMenuItem(menu, "ammo_judgement", mStrJud);
-    AddMenuItem(menu, "ammo_minigun", mStrMinigun);
-    AddMenuItem(menu, "ammo_idle", mStrIdle);
+
+    char buff[64], ammoName[64], menuID[8];
+
+    for(int i = 0; i < SATELLITE_AMMO_TYPE_COUNT; i++) {
+        if(i == AMMO_TYPE_ALL)
+            continue;
+
+        getAmmoName(ammoName, sizeof(ammoName), i, client);
+        if(i != AMMO_TYPE_IDLE)
+            Format(buff, sizeof(buff), "%s %t", ammoName, "sc menu ammo left", g_spSatellitePlayersAmmo[client][i].usesLeft);
+        else
+            Format(buff, sizeof(buff), "%s", ammoName);
+
+        Format(menuID, sizeof(menuID), "%d", i);
+        AddMenuItem(menu, menuID, buff);
+    }
+
     SetMenuExitButton(menu, true);
     DisplayMenu(menu, client, 45);
 }
@@ -847,35 +846,13 @@ public int ChangeModeMenu(Handle menu, MenuAction action, int client, int itemNu
 {
     if(action == MenuAction_Select)
     {
-        char preference[32];
+        char preference[2];
         GetMenuItem(menu, itemNum, preference, sizeof(preference));
 
-        if(strcmp(preference, "ammo_blizzard") == 0) {
-            g_spSatellitePlayers[client].currentAmmoType = AMMO_TYPE_BLIZZARD;
+        int ammoType = StringToInt(preference);
 
-            printAmmoTypeChangeMessage(client, AMMO_TYPE_BLIZZARD);
-        }
-        else if(strcmp(preference, "ammo_inferno") == 0) {
-            g_spSatellitePlayers[client].currentAmmoType = AMMO_TYPE_INFERNO;
-
-            printAmmoTypeChangeMessage(client, AMMO_TYPE_INFERNO);
-        }
-        else if(strcmp(preference, "ammo_judgement") == 0) {
-            g_spSatellitePlayers[client].currentAmmoType = AMMO_TYPE_JUDGEMENT;
-
-            printAmmoTypeChangeMessage(client, AMMO_TYPE_JUDGEMENT);
-        }
-        else if(strcmp(preference, "ammo_minigun") == 0) {
-            g_spSatellitePlayers[client].currentAmmoType = AMMO_TYPE_MINIGUN;
-
-            printAmmoTypeChangeMessage(client, AMMO_TYPE_MINIGUN);
-        }
-        else if(strcmp(preference, "ammo_idle") == 0) {
-            g_spSatellitePlayers[client].currentAmmoType = AMMO_TYPE_IDLE;
-
-            printAmmoTypeChangeMessage(client, AMMO_TYPE_IDLE);
-        }
-
+        g_spSatellitePlayers[client].currentAmmoType = ammoType;
+        printAmmoTypeChangeMessage(client, ammoType);
 
         if(!checkSatelliteCanShoot(client) && g_spSatellitePlayers[client].currentAmmoType != AMMO_TYPE_IDLE) {
             warnEmptyAmmo(client, g_spSatellitePlayers[client].currentAmmoType);
