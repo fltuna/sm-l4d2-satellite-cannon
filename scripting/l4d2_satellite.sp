@@ -714,6 +714,11 @@ public Action onWeaponFired(Handle event, const char[] name, bool dontBroadcast)
     if(!StrEqual(weapon, "pistol_magnum"))
         return Plugin_Continue;
     
+    if(!g_ssSatelliteSettings[g_spSatellitePlayers[attacker].currentAmmoType].values.enabled) {
+        g_spSatellitePlayers[attacker].currentAmmoType = AMMO_TYPE_IDLE;
+        return Plugin_Continue;
+    }
+
     if(g_spSatellitePlayers[attacker].currentAmmoType == AMMO_TYPE_ALL || g_spSatellitePlayers[attacker].currentAmmoType == AMMO_TYPE_IDLE)
         return Plugin_Continue;
 
