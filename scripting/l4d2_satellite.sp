@@ -829,10 +829,15 @@ public void ChangeMode(int client)
             continue;
 
         getAmmoName(ammoName, sizeof(ammoName), i, client);
-        if(i != AMMO_TYPE_IDLE)
+
+        if(i != AMMO_TYPE_IDLE) {
+            if(!g_ssSatelliteSettings[i].values.enabled)
+                continue;
             Format(buff, sizeof(buff), "%s %t", ammoName, "sc menu ammo left", g_spSatellitePlayersAmmo[client][i].usesLeft);
-        else
+        }
+        else {
             Format(buff, sizeof(buff), "%s", ammoName);
+        }
 
         Format(menuID, sizeof(menuID), "%d", i);
         AddMenuItem(menu, menuID, buff);
