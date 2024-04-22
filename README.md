@@ -28,6 +28,11 @@
 - Automatically removes minigun when certain time elapsed.
 - To adjust removal time, edit `sm_satellite_ammo_minigun_time` with seconds.
 
+#### Medical Injection
+
+- Heals a player
+- You can set only shooter or everyone within radius
+
 ### More customizable
 
 These settings are able to set individually or globally.

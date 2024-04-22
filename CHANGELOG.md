@@ -10,6 +10,8 @@
 ### New features
 
 - Able to specify prohibited gamemodes to restrict satellite cannon usage.
+- Minigun Ability
+- Healing Ability
 
 ### Improvements
 

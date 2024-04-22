@@ -34,6 +34,11 @@
 #define SOUND_FREEZE    "physics/glass/glass_pottery_break3.wav"
 #define SOUND_DEFROST    "physics/glass/glass_sheet_break1.wav"
 
+
+#define SOUND_NOISE				"ambient/atmosphere/noise2.wav"
+#define SOUND_SQUEAK			"ambient/random_amb_sfx/randommetalsqueak01.wav"
+#define SOUND_TUNNEL			"ambient/atmosphere/tunnel1.wav"
+
 /* Model */
 #define ENTITY_GASCAN    "models/props_junk/gascan001a.mdl"
 #define ENTITY_PROPANE    "models/props_junk/propanecanister001a.mdl"
@@ -55,13 +60,14 @@
 
 
 // Satellite ammo type.
-#define SATELLITE_AMMO_TYPE_COUNT 6
+#define SATELLITE_AMMO_TYPE_COUNT 7
 enum {
     AMMO_TYPE_ALL = 0,
     AMMO_TYPE_BLIZZARD,
     AMMO_TYPE_INFERNO,
     AMMO_TYPE_JUDGEMENT,
     AMMO_TYPE_MINIGUN,
+    AMMO_TYPE_MEDICAL_INJECTION,
     AMMO_TYPE_IDLE,
 }
 
@@ -500,6 +506,26 @@ public void OnPluginStart() {
     g_ssSatelliteSettings[AMMO_TYPE_MINIGUN].cvars.addChangeHook(OnPluginSettingsUpdated);
     g_ssSatelliteSettings[AMMO_TYPE_MINIGUN].updateCache();
 
+
+    SatelliteSettingsCvars medicalInjCvars;
+    SatelliteSettingsValues medicalInjValues;
+    g_ssSatelliteSettings[AMMO_TYPE_MEDICAL_INJECTION].cvars = medicalInjCvars;
+    g_ssSatelliteSettings[AMMO_TYPE_MEDICAL_INJECTION].values = medicalInjValues;
+
+    g_ssSatelliteSettings[AMMO_TYPE_MEDICAL_INJECTION].cvars.enabled =           CreateConVar("sm_satellite_ammo_medical_injection_enable",            "1",        "0:OFF 1:ON", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+    g_ssSatelliteSettings[AMMO_TYPE_MEDICAL_INJECTION].cvars.damage =            CreateConVar(DUMMY_CVAR_NAME,              "0",    DUMMY_CVAR_DESCRIPTION, FCVAR_DONTRECORD);
+    g_ssSatelliteSettings[AMMO_TYPE_MEDICAL_INJECTION].cvars.radius =            CreateConVar("sm_satellite_ammo_medical_injection_radius",            "200.0",    "Radius of this cannon.", FCVAR_NOTIFY);
+    g_ssSatelliteSettings[AMMO_TYPE_MEDICAL_INJECTION].cvars.maxUses =           CreateConVar("sm_satellite_ammo_medical_injection_limit",             "2",        "Limit of uses. reset timing is depends on usage_reset_timing cvar", FCVAR_NOTIFY);
+    g_ssSatelliteSettings[AMMO_TYPE_MEDICAL_INJECTION].cvars.cooldown =          CreateConVar("sm_satellite_ammo_medical_injection_cooldown",          "0.0",      "Cooldown per shot. 0 means you can use immediately when your guns reloaded.", FCVAR_NOTIFY);
+    g_ssSatelliteSettings[AMMO_TYPE_MEDICAL_INJECTION].cvars.usageResetTiming =  CreateConVar("sm_satellite_ammo_medical_injection_usage_reset_timing","1",        "When ammo will reset. | 1: Round start, 2: Map start, 4: Death | If you want to use multiple timings you can set the combined number. For example Round start and death is 5.", FCVAR_NOTIFY);
+    g_ssSatelliteSettings[AMMO_TYPE_MEDICAL_INJECTION].cvars.burstDelay =        CreateConVar("sm_satellite_ammo_medical_injection_burst_delay",       "1.0",      "Launching delay of this cannon. this value will only used when sm_satellite_burst_delay_global is 0", FCVAR_NOTIFY);
+    g_ssSatelliteSettings[AMMO_TYPE_MEDICAL_INJECTION].cvars.pushForce =         CreateConVar(DUMMY_CVAR_NAME,              "0",    DUMMY_CVAR_DESCRIPTION, FCVAR_DONTRECORD);
+    g_ssSatelliteSettings[AMMO_TYPE_MEDICAL_INJECTION].cvars.ammoAbillity1 =     CreateConVar("sm_satellite_ammo_medical_injection_heal",              "20",    "How many hp healed per shot.", FCVAR_NOTIFY);
+    g_ssSatelliteSettings[AMMO_TYPE_MEDICAL_INJECTION].cvars.ammoAbillity2 =     CreateConVar(DUMMY_CVAR_NAME,              "0",    DUMMY_CVAR_DESCRIPTION, FCVAR_DONTRECORD);
+    g_ssSatelliteSettings[AMMO_TYPE_MEDICAL_INJECTION].cvars.hasFriendlyFire =   CreateConVar("sm_satellite_ammo_medical_injection_heal_everyone",            "0",        "0:Only shooter 1:Everyone", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+    g_ssSatelliteSettings[AMMO_TYPE_MEDICAL_INJECTION].cvars.addChangeHook(OnPluginSettingsUpdated);
+    g_ssSatelliteSettings[AMMO_TYPE_MEDICAL_INJECTION].updateCache();
+
     LoadTranslations("l4d2_satellite.phrases");
 
     HookEvent("weapon_fire", onWeaponFired);
@@ -537,6 +563,7 @@ public void OnPluginSettingsUpdated(ConVar convar, const char[] oldValue, const 
     g_ssSatelliteSettings[AMMO_TYPE_INFERNO].updateCache();
     g_ssSatelliteSettings[AMMO_TYPE_JUDGEMENT].updateCache();
     g_ssSatelliteSettings[AMMO_TYPE_MINIGUN].updateCache();
+    g_ssSatelliteSettings[AMMO_TYPE_MEDICAL_INJECTION].updateCache();
     checkGamemodeIsProhibided();
 }
 
@@ -605,6 +632,9 @@ public void OnMapStart() {
     PrecacheSound(SOUND_IMPACT03, true);
     PrecacheSound(SOUND_FREEZE, true);
     PrecacheSound(SOUND_DEFROST, true);
+    PrecacheSound(SOUND_NOISE, true);
+    PrecacheSound(SOUND_SQUEAK, true);
+    PrecacheSound(SOUND_TUNNEL, true);
 
     checkGamemodeIsProhibided();
 
@@ -664,11 +694,16 @@ void resetPlayerAmmo(int client, int ammoType) {
             setPlayerAmmo(client, ammoType, getSatelliteMaxUses(AMMO_TYPE_MINIGUN));
         }
 
+        case AMMO_TYPE_MEDICAL_INJECTION: {
+            setPlayerAmmo(client, ammoType, getSatelliteMaxUses(AMMO_TYPE_MEDICAL_INJECTION));
+        }
+
         case AMMO_TYPE_ALL: {
             resetPlayerAmmo(client, AMMO_TYPE_BLIZZARD);
             resetPlayerAmmo(client, AMMO_TYPE_INFERNO);
             resetPlayerAmmo(client, AMMO_TYPE_JUDGEMENT);
             resetPlayerAmmo(client, AMMO_TYPE_MINIGUN);
+            resetPlayerAmmo(client, AMMO_TYPE_MEDICAL_INJECTION);
         }
     }
 }
@@ -914,9 +949,14 @@ public Action TraceTimer(Handle timer, DataPack pack)
     int ammoType = pack.ReadCell();
     
     /* Ring laser effect */
-    CreateRingEffect(tracePos, 150, 150, 230, 230, getSatelliteRadius(ammoType),
+    CreateRingEffect(tracePos, 150, 150, 230, 230, getSatelliteRadius(ammoType), 0.0,
                 getSatelliteBurstDelay(ammoType));
     
+    if(ammoType == AMMO_TYPE_MEDICAL_INJECTION) {
+        CreateRingEffect(tracePos, 0, 255, 0, 150, getSatelliteRadius(ammoType), getSatelliteRadius(ammoType)-1.0,
+            getSatelliteBurstDelay(ammoType));
+    }
+
     /* Launch satellite cannon */
     raycount[client] = 0;
 
@@ -954,6 +994,9 @@ public Action SatelliteTimer(Handle timer, DataPack pack)
         }
         case AMMO_TYPE_MINIGUN: {
             castMinigun(client, tracePos, angles);
+        }
+        case AMMO_TYPE_MEDICAL_INJECTION: {
+            castMedicalInjection(client, tracePos);
         }
     }
 
@@ -1279,6 +1322,52 @@ int spawnMinigun(float origin[3], float angles[3], int type) {
     return minigun;
 }
 
+
+
+void castMedicalInjection(int client, float tracePos[3]) {
+    EmitAmbientSound(SOUND_SQUEAK, tracePos, 0, SNDLEVEL_NORMAL, SND_NOFLAGS, 2.0);
+    EmitAmbientSound(SOUND_SQUEAK, tracePos, 0, SNDLEVEL_NORMAL, SND_NOFLAGS, 2.0);
+    EmitAmbientSound(SOUND_SQUEAK, tracePos, 0, SNDLEVEL_NORMAL, SND_NOFLAGS, 2.0);
+
+
+    CreateRingEffect(tracePos, 0, 255, 0, 150, 0.0, getSatelliteRadius(AMMO_TYPE_MEDICAL_INJECTION),
+        getSatelliteBurstDelay(AMMO_TYPE_MEDICAL_INJECTION)/5);
+    
+    float pos[3];
+    if(g_ssSatelliteSettings[AMMO_TYPE_MEDICAL_INJECTION].values.hasFriendlyFire) {
+        for(int i = 1; i <= MaxClients; i++) {
+            if(!IsClientConnected(i) || !IsClientInGame(i))
+                continue;
+            
+            if(GetClientTeam(i) != SURVIVOR)
+                continue;
+
+            GetClientEyePosition(i, pos);
+
+            if(!(GetVectorDistance(pos, tracePos) < getSatelliteRadius(AMMO_TYPE_MEDICAL_INJECTION)))
+                continue;
+
+            healPlayerHealth(i);
+        }
+    }
+    else {
+        GetClientEyePosition(client, pos);
+        if(GetVectorDistance(pos, tracePos) < getSatelliteRadius(AMMO_TYPE_MEDICAL_INJECTION))
+            healPlayerHealth(client);
+    }
+}
+
+void healPlayerHealth(int client) {
+    int health;
+    health = GetClientHealth(client);
+    health += RoundToCeil(g_ssSatelliteSettings[AMMO_TYPE_MEDICAL_INJECTION].values.ammoAbillity1);
+
+    if(health >= 100)
+        health = 100;
+    
+    SetEntityHealth(client, health);
+}
+
 /******************************************************
 *    TE functions
 *******************************************************/
@@ -1367,7 +1456,7 @@ public void CreateLaserEffect(int client, int colRed, int colGre, int colBlu, in
     }
 }
 
-public void CreateRingEffect(float tracePosition[3], int colRed, int colGre, int colBlu, int alpha, float width, float duration)
+public void CreateRingEffect(float tracePosition[3], int colRed, int colGre, int colBlu, int alpha, float startWidth, float endWidth, float duration)
 {
     int color[4];
     color[0] = colRed;
@@ -1375,9 +1464,9 @@ public void CreateRingEffect(float tracePosition[3], int colRed, int colGre, int
     color[2] = colBlu;
     color[3] = alpha;
     
-    TE_SetupBeamRingPoint(tracePosition, width*2, 0.0, g_BeamSprite,
+    TE_SetupBeamRingPoint(tracePosition, startWidth*2, endWidth*2, g_BeamSprite,
                         g_HaloSprite, 0, 10, duration, 4.0, 0.5,
-                        {150, 150, 230, 230}, 80, 0);
+                        color, 80, 0);
     TE_SendToAll();
 }
 
@@ -1426,6 +1515,9 @@ void getAmmoName(char[] buffer, int bufferSize, int ammoType, int client) {
         }
         case AMMO_TYPE_MINIGUN: {
             Format(buffer, bufferSize, "%t", "sc ammo name minigun");
+        }
+        case AMMO_TYPE_MEDICAL_INJECTION: {
+            Format(buffer, bufferSize, "%t", "sc ammo name medical injection");
         }
         case AMMO_TYPE_IDLE: {
             Format(buffer, bufferSize, "%t", "sc ammo name idle");
