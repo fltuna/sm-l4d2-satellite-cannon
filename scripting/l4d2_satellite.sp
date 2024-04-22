@@ -1,5 +1,5 @@
 /******************************************************
-*             L4D2: Satellite Cannon v2.0
+*             L4D2: Satellite Cannon v2.1
 *                    Author: ztar, faketuna
 *             Web: http://ztar.blog7.fc2.com/
 *******************************************************/
@@ -11,7 +11,7 @@
 #include <sdktools>
 #include <sdkhooks>
 
-#define PLUGIN_VERSION "2.0"
+#define PLUGIN_VERSION "2.1"
 
 #define SURVIVOR        2
 #define INFECTED        3
@@ -55,13 +55,14 @@
 
 
 // Satellite ammo type.
-#define SATELLITE_AMMO_TYPE_COUNT 5
+#define SATELLITE_AMMO_TYPE_COUNT 6
 enum {
     AMMO_TYPE_IDLE = 0,
     AMMO_TYPE_ALL,
     AMMO_TYPE_JUDGEMENT,
     AMMO_TYPE_BLIZZARD,
     AMMO_TYPE_INFERNO,
+    AMMO_TYPE_MINIGUN,
 }
 
 // Reset timings of usage limit 
@@ -372,7 +373,7 @@ int raycount[MAXPLAYERS+1];
 public Plugin myinfo = 
 {
     name = "[L4D2] Satellite Cannon",
-    author = "ztar",
+    author = "ztar, faketuna",
     description = "Vertical laser launches by shooting magnum.",
     version = PLUGIN_VERSION,
     url = "http://ztar.blog7.fc2.com/"
@@ -463,6 +464,26 @@ public void OnPluginStart() {
     g_ssSatelliteSettings[AMMO_TYPE_JUDGEMENT].cvars.addChangeHook(OnPluginSettingsUpdated);
     g_ssSatelliteSettings[AMMO_TYPE_JUDGEMENT].updateCache();
 
+
+    SatelliteSettingsCvars minigunCvars;
+    SatelliteSettingsValues minigunValues;
+    g_ssSatelliteSettings[AMMO_TYPE_MINIGUN].cvars = minigunCvars;
+    g_ssSatelliteSettings[AMMO_TYPE_MINIGUN].values = minigunValues;
+
+    g_ssSatelliteSettings[AMMO_TYPE_MINIGUN].cvars.enabled =           CreateConVar("sm_satellite_ammo_minigun_enable",            "1",        "0:OFF 1:ON", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+    g_ssSatelliteSettings[AMMO_TYPE_MINIGUN].cvars.damage =            CreateConVar(DUMMY_CVAR_NAME,              "0",    DUMMY_CVAR_DESCRIPTION, FCVAR_DONTRECORD);
+    g_ssSatelliteSettings[AMMO_TYPE_MINIGUN].cvars.radius =            CreateConVar("sm_satellite_ammo_minigun_radius",            "200.0",    "Visual laser ring radius of this cannon.", FCVAR_NOTIFY);
+    g_ssSatelliteSettings[AMMO_TYPE_MINIGUN].cvars.maxUses =           CreateConVar("sm_satellite_ammo_minigun_limit",             "5",        "Limit of uses. reset timing is depends on usage_reset_timing cvar", FCVAR_NOTIFY);
+    g_ssSatelliteSettings[AMMO_TYPE_MINIGUN].cvars.cooldown =          CreateConVar("sm_satellite_ammo_minigun_cooldown",          "0.0",      "Cooldown per shot. 0 means you can use immediately when your guns reloaded.", FCVAR_NOTIFY);
+    g_ssSatelliteSettings[AMMO_TYPE_MINIGUN].cvars.usageResetTiming =  CreateConVar("sm_satellite_ammo_minigun_usage_reset_timing","1",        "When ammo will reset. | 1: Round start, 2: Map start, 4: Death | If you want to use multiple timings you can set the combined number. For example Round start and death is 5.", FCVAR_NOTIFY);
+    g_ssSatelliteSettings[AMMO_TYPE_MINIGUN].cvars.burstDelay =        CreateConVar("sm_satellite_ammo_minigun_burst_delay",       "1.0",      "Launching delay of this cannon. this value will only used when sm_satellite_burst_delay_global is 0", FCVAR_NOTIFY);
+    g_ssSatelliteSettings[AMMO_TYPE_MINIGUN].cvars.pushForce =         CreateConVar(DUMMY_CVAR_NAME,              "0",    DUMMY_CVAR_DESCRIPTION, FCVAR_DONTRECORD);
+    g_ssSatelliteSettings[AMMO_TYPE_MINIGUN].cvars.ammoAbillity1 =     CreateConVar("sm_satellite_ammo_minigun_time",              "10.0",    "When minigun disappeared after spawn", FCVAR_NOTIFY);
+    g_ssSatelliteSettings[AMMO_TYPE_MINIGUN].cvars.ammoAbillity2 =     CreateConVar(DUMMY_CVAR_NAME,              "0",    DUMMY_CVAR_DESCRIPTION, FCVAR_DONTRECORD);
+    g_ssSatelliteSettings[AMMO_TYPE_MINIGUN].cvars.hasFriendlyFire =   CreateConVar(DUMMY_CVAR_NAME,              "0",    DUMMY_CVAR_DESCRIPTION, FCVAR_DONTRECORD);
+    g_ssSatelliteSettings[AMMO_TYPE_MINIGUN].cvars.addChangeHook(OnPluginSettingsUpdated);
+    g_ssSatelliteSettings[AMMO_TYPE_MINIGUN].updateCache();
+
     LoadTranslations("l4d2_satellite.phrases");
 
     HookEvent("weapon_fire", onWeaponFired);
@@ -497,6 +518,7 @@ public void OnPluginSettingsUpdated(ConVar convar, const char[] oldValue, const 
     g_ssSatelliteSettings[AMMO_TYPE_BLIZZARD].updateCache();
     g_ssSatelliteSettings[AMMO_TYPE_INFERNO].updateCache();
     g_ssSatelliteSettings[AMMO_TYPE_JUDGEMENT].updateCache();
+    g_ssSatelliteSettings[AMMO_TYPE_MINIGUN].updateCache();
 }
 
 public void OnClientPutInServer(int client) {
@@ -610,10 +632,15 @@ void resetPlayerAmmo(int client, int ammoType) {
             setPlayerAmmo(client, ammoType, getSatelliteMaxUses(AMMO_TYPE_JUDGEMENT));
         }
 
+        case AMMO_TYPE_MINIGUN: {
+            setPlayerAmmo(client, ammoType, getSatelliteMaxUses(AMMO_TYPE_MINIGUN));
+        }
+
         case AMMO_TYPE_ALL: {
             resetPlayerAmmo(client, AMMO_TYPE_BLIZZARD);
             resetPlayerAmmo(client, AMMO_TYPE_INFERNO);
             resetPlayerAmmo(client, AMMO_TYPE_JUDGEMENT);
+            resetPlayerAmmo(client, AMMO_TYPE_MINIGUN);
         }
     }
 }
@@ -720,7 +747,13 @@ public Action onWeaponFired(Handle event, const char[] name, bool dontBroadcast)
     pack.WriteCell(attacker);
     pack.WriteFloatArray(g_spSatellitePlayers[attacker].tracePosition, 3);
     pack.WriteCell(g_spSatellitePlayers[attacker].lastAmmoType);
+
+    float angles[3];
+    GetClientEyeAngles(attacker, angles);
+    pack.WriteFloatArray(angles, 3);
+
     CreateTimer(0.2, TraceTimer, pack);
+
     subtractSatelliteUses(attacker);
     notifyWhenAmmoEmpty(attacker);
     
@@ -786,7 +819,7 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 
 public void ChangeMode(int client)
 {
-    char mStrJud[64], mStrBli[64], mStrInf[64], mStrIdle[64],_ammoName[32];
+    char mStrJud[64], mStrBli[64], mStrInf[64], mStrIdle[64], mStrMinigun[64], _ammoName[32];
 
     getAmmoName(_ammoName, sizeof(_ammoName), AMMO_TYPE_BLIZZARD, client);
     Format(mStrBli, sizeof(mStrBli), "%s %t", _ammoName, "sc menu ammo left", g_spSatellitePlayersAmmo[client][AMMO_TYPE_BLIZZARD].usesLeft);
@@ -794,6 +827,8 @@ public void ChangeMode(int client)
     Format(mStrInf, sizeof(mStrInf), "%s %t", _ammoName, "sc menu ammo left", g_spSatellitePlayersAmmo[client][AMMO_TYPE_INFERNO].usesLeft);
     getAmmoName(_ammoName, sizeof(_ammoName), AMMO_TYPE_JUDGEMENT, client);
     Format(mStrJud, sizeof(mStrJud), "%s %t", _ammoName, "sc menu ammo left", g_spSatellitePlayersAmmo[client][AMMO_TYPE_JUDGEMENT].usesLeft);
+    getAmmoName(_ammoName, sizeof(_ammoName), AMMO_TYPE_MINIGUN, client);
+    Format(mStrMinigun, sizeof(mStrMinigun), "%s %t", _ammoName, "sc menu ammo left", g_spSatellitePlayersAmmo[client][AMMO_TYPE_MINIGUN].usesLeft);
     getAmmoName(_ammoName, sizeof(_ammoName), AMMO_TYPE_IDLE, client);
     Format(mStrIdle, sizeof(mStrIdle), "%s", _ammoName);
     
@@ -802,6 +837,7 @@ public void ChangeMode(int client)
     AddMenuItem(menu, "ammo_blizzard", mStrBli);
     AddMenuItem(menu, "ammo_inferno", mStrInf);
     AddMenuItem(menu, "ammo_judgement", mStrJud);
+    AddMenuItem(menu, "ammo_minigun", mStrMinigun);
     AddMenuItem(menu, "ammo_idle", mStrIdle);
     SetMenuExitButton(menu, true);
     DisplayMenu(menu, client, 45);
@@ -828,6 +864,11 @@ public int ChangeModeMenu(Handle menu, MenuAction action, int client, int itemNu
             g_spSatellitePlayers[client].currentAmmoType = AMMO_TYPE_JUDGEMENT;
 
             printAmmoTypeChangeMessage(client, AMMO_TYPE_JUDGEMENT);
+        }
+        else if(strcmp(preference, "ammo_minigun") == 0) {
+            g_spSatellitePlayers[client].currentAmmoType = AMMO_TYPE_MINIGUN;
+
+            printAmmoTypeChangeMessage(client, AMMO_TYPE_MINIGUN);
         }
         else if(strcmp(preference, "ammo_idle") == 0) {
             g_spSatellitePlayers[client].currentAmmoType = AMMO_TYPE_IDLE;
@@ -876,6 +917,8 @@ public Action SatelliteTimer(Handle timer, DataPack pack)
     float tracePos[3];
     pack.ReadFloatArray(tracePos, 3);
     int ammoType = pack.ReadCell();
+    float angles[3];
+    pack.ReadFloatArray(angles, 3);
 
     if(!IsValidEntity(client) || !IsClientInGame(client) || !IsPlayerAlive(client))
         return Plugin_Handled;
@@ -892,6 +935,9 @@ public Action SatelliteTimer(Handle timer, DataPack pack)
         }
         case AMMO_TYPE_JUDGEMENT: {
             Judgement(client, tracePos);
+        }
+        case AMMO_TYPE_MINIGUN: {
+            castMinigun(client, tracePos, angles);
         }
     }
 
@@ -1136,6 +1182,87 @@ public Action DeletePushForce(Handle timer, any ent)
     return Plugin_Continue;
 }
 
+void castMinigun(int client, float tracePos[3], float angles[3]) {
+
+    EmitAmbientSound(SOUND_IMPACT01, tracePos);
+
+    CreateLaserEffect(client, 80, 230, 80, 230, 6.0, 1.0, LASER_EFFECT_TYPE_VERTICAL, tracePos);
+    // TODO IMPLEMENT MINIGUN SPAWN
+    int ent = spawnMinigun(tracePos, angles, GetRandomInt(1, 2));
+
+    if(ent == -1)
+        return;
+
+    CreateTimer(g_ssSatelliteSettings[AMMO_TYPE_MINIGUN].values.ammoAbillity1, removeMinigunTimer, ent);
+}
+
+public Action removeMinigunTimer(Handle timer, int minigunEntity) {
+    removeMinigun(minigunEntity);
+    return Plugin_Stop;
+}
+
+bool isPlayerUsingMinigun(int client) {
+    return (GetEntProp(client, Prop_Send, "m_usingMountedWeapon") > 0 || GetEntProp(client, Prop_Send, "m_usingMountedGun") > 0);
+}
+
+void removeMinigun(int minigunEntity) {
+    int owner = GetEntPropEnt(minigunEntity, Prop_Send, "m_owner");
+    if(isValidClient(owner) && isPlayerUsingMinigun(owner)) {
+        SetEntPropEnt(minigunEntity, Prop_Send, "m_owner", -1);
+        SetEntProp(owner, Prop_Send, "m_usingMountedGun", 0);
+        SetEntProp(owner, Prop_Send, "m_usingMountedWeapon", 0);
+        SetEntPropEnt(owner, Prop_Send, "m_hUseEntity", -1);
+    }
+
+    RemoveEdict(minigunEntity);
+}
+
+int spawnMinigun(float origin[3], float angles[3], int type) {
+    int minigun;
+    switch(type) {
+        case 1: {
+            minigun = CreateEntityByName("prop_minigun");
+
+            if(minigun == -1)
+                return -1;
+
+            DispatchKeyValue(minigun, "model", "models/w_models/weapons/50cal.mdl");
+        }
+        case 2: {
+            minigun = CreateEntityByName("prop_minigun_l4d1");
+
+            if(minigun == -1)
+                return -1;
+
+            DispatchKeyValue(minigun, "model", "models/w_models/weapons/w_minigun.mdl");
+        }
+    }
+
+    DispatchKeyValueFloat (minigun, "MaxPitch", 360.00);
+    DispatchKeyValueFloat (minigun, "MinPitch", -360.00);
+    DispatchKeyValueFloat (minigun, "MaxYaw", 90.00);
+
+    angles[0] = 0.0;
+    angles[2] = 0.0;
+    DispatchKeyValueVector(minigun, "Angles", angles);
+    TeleportEntity(minigun, origin, NULL_VECTOR, NULL_VECTOR);
+    DispatchSpawn(minigun);
+
+    float clientOrigin[3];
+    for(int i = 1; i <= MaxClients; i++) {
+        if(!isValidClient(i)) 
+            continue;
+        GetClientAbsOrigin(i, clientOrigin);
+        clientOrigin[2] = origin[2];
+        float distance = GetVectorDistance(origin, clientOrigin, true);
+        if(distance <= 640.0) {
+            clientOrigin[2] = origin[2]+32.0;
+            TeleportEntity(i, clientOrigin, NULL_VECTOR, NULL_VECTOR);
+        }
+    }
+    return minigun;
+}
+
 /******************************************************
 *    TE functions
 *******************************************************/
@@ -1280,6 +1407,9 @@ void getAmmoName(char[] buffer, int bufferSize, int ammoType, int client) {
         }
         case AMMO_TYPE_JUDGEMENT: {
             Format(buffer, bufferSize, "%t", "sc ammo name judgement");
+        }
+        case AMMO_TYPE_MINIGUN: {
+            Format(buffer, bufferSize, "%t", "sc ammo name minigun");
         }
         case AMMO_TYPE_IDLE: {
             Format(buffer, bufferSize, "%t", "sc ammo name idle");

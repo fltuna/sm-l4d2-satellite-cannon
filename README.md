@@ -22,7 +22,11 @@
 
 ### New abilities
 
-- Todo
+#### Minigun
+
+- Spawns a minigun
+- Automatically removes minigun when certain time elapsed.
+- To adjust removal time, edit `sm_satellite_ammo_minigun_time` with seconds.
 
 ### More customizable
 

@@ -28,6 +28,11 @@
         "en"    "JUDGEMENT"
         "jp"    "ジャッジメント"
     }
+    "sc ammo name minigun"
+    {
+        "en"    "MINIGUN"
+        "jp"    "ミニガン"
+    }
     "sc ammo name idle"
     {
         "en"    "IDLE"
