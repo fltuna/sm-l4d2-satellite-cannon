@@ -230,6 +230,8 @@ enum struct PluginSettingsCVars {
     ConVar adminFlags;
     ConVar usageResetTiming;
     ConVar globalUsageResetTiming;
+    ConVar prohibitedGamemodes;
+    ConVar currentGamemode;
 
     void addChangeHook(ConVarChanged callback) {
         this.enabled.AddChangeHook(callback);
@@ -244,6 +246,8 @@ enum struct PluginSettingsCVars {
         this.adminFlags.AddChangeHook(callback);
         this.usageResetTiming.AddChangeHook(callback);
         this.globalUsageResetTiming.AddChangeHook(callback);
+        this.prohibitedGamemodes.AddChangeHook(callback);
+        this.currentGamemode.AddChangeHook(callback);
     }
 }
 
@@ -260,6 +264,8 @@ enum struct PluginSettingsValues {
     char adminFlags;
     int usageResetTiming;
     bool globalUsageResetTiming;
+    char prohibitedGamemodes[512];
+    char currentGamemode[32];
 
     void setValues(
         ConVar enabled,
@@ -273,7 +279,9 @@ enum struct PluginSettingsValues {
         ConVar adminOnly,
         ConVar adminFlags,
         ConVar usageResetTiming,
-        ConVar globalUsageResetTiming
+        ConVar globalUsageResetTiming,
+        ConVar prohibitedGamemodes,
+        ConVar currentGamemode
     ) {
         this.enabled = enabled.BoolValue;
         this.burstDelay = burstDelay.FloatValue;
@@ -287,6 +295,8 @@ enum struct PluginSettingsValues {
         GetConVarString(adminFlags, this.adminFlags, sizeof(this.adminFlags));
         this.usageResetTiming = getResetTiming(usageResetTiming.IntValue);
         this.globalUsageResetTiming = globalUsageResetTiming.BoolValue;
+        GetConVarString(prohibitedGamemodes, this.prohibitedGamemodes, sizeof(this.prohibitedGamemodes));
+        GetConVarString(currentGamemode, this.currentGamemode, sizeof(this.currentGamemode));
     }
 }
 
@@ -307,7 +317,9 @@ enum struct PluginSettings {
             this.cvars.adminOnly,
             this.cvars.adminFlags,
             this.cvars.usageResetTiming,
-            this.cvars.globalUsageResetTiming
+            this.cvars.globalUsageResetTiming,
+            this.cvars.prohibitedGamemodes,
+            this.cvars.currentGamemode
         );
     }
 }
@@ -367,6 +379,8 @@ int g_HaloSprite;
 int g_GlowSprite;
 int tEntity;
 
+bool g_bIsProhibidedGamemode = false;
+
 int raycount[MAXPLAYERS+1];
 
 
@@ -395,7 +409,9 @@ public void OnPluginStart() {
     g_psPluginSettings.cvars.globalPushForce =      CreateConVar("sm_satellite_push_force_global",      "1.0",      "Toggle global push force. When set to 0 it uses individual push force based on satellite ammo settings.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
     g_psPluginSettings.cvars.friendlyFire =         CreateConVar("sm_satellite_friendly_fire",      "1.0",      "Toggle friendly fire. This value is only be used when sm_satellite_friendly_fire_global is 1", FCVAR_NOTIFY, true, 0.0, true, 1.0);
     g_psPluginSettings.cvars.globalFriendlyFire =   CreateConVar("sm_satellite_friendly_fire_global",      "1.0",      "Toggle global friendly fire. When set to 0 it uses individual push force based on satellite ammo settings.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
-    
+    g_psPluginSettings.cvars.prohibitedGamemodes =  CreateConVar("sm_satellite_prohibited_gamemodes",      "versus, mutation15",      "What gamemodes are prohibided to use satellite cannon. This ConVar supposed for game balancing. | put gamemode name separated with \",\"", FCVAR_NOTIFY);
+    g_psPluginSettings.cvars.currentGamemode =      FindConVar("mp_gamemode");
+
     // TODO Implement admin only feature
     //g_psPluginSettings.cvars.adminFlags =           CreateConVar("sm_satellite_admin_flags",            "z",        "SourceMod admin flag", FCVAR_NOTIFY);
     //g_psPluginSettings.cvars.adminOnly =            CreateConVar("sm_satellite_admin_only",             "1.0",      "Toggle sattelite cannon admin only.", FCVAR_NOTIFY, true, 0.0, true, 2.0);
@@ -501,6 +517,8 @@ public void OnPluginStart() {
         SDKHook(i, SDKHook_OnTakeDamage, onTakeDamage);
     }
 
+    checkGamemodeIsProhibided();
+
     AutoExecConfig(true,"l4d2_sm_satellite");
 }
 
@@ -519,6 +537,7 @@ public void OnPluginSettingsUpdated(ConVar convar, const char[] oldValue, const 
     g_ssSatelliteSettings[AMMO_TYPE_INFERNO].updateCache();
     g_ssSatelliteSettings[AMMO_TYPE_JUDGEMENT].updateCache();
     g_ssSatelliteSettings[AMMO_TYPE_MINIGUN].updateCache();
+    checkGamemodeIsProhibided();
 }
 
 public void OnClientPutInServer(int client) {
@@ -527,6 +546,13 @@ public void OnClientPutInServer(int client) {
 
 public void OnClientDisconnect(int client) {
     SDKUnhook(client, SDKHook_OnTakeDamage, onTakeDamage);
+}
+
+void checkGamemodeIsProhibided() {
+    g_bIsProhibidedGamemode = false;
+    if(StrContains(g_psPluginSettings.values.prohibitedGamemodes, g_psPluginSettings.values.currentGamemode, false) >= 0) {
+        g_bIsProhibidedGamemode = true;
+    }
 }
 
 
@@ -579,6 +605,8 @@ public void OnMapStart() {
     PrecacheSound(SOUND_IMPACT03, true);
     PrecacheSound(SOUND_FREEZE, true);
     PrecacheSound(SOUND_DEFROST, true);
+
+    checkGamemodeIsProhibided();
 
     for(int i = 0; i < SATELLITE_AMMO_TYPE_COUNT; i++) {
         if(i == AMMO_TYPE_ALL || i == AMMO_TYPE_IDLE)
@@ -702,9 +730,7 @@ public Action onWeaponFired(Handle event, const char[] name, bool dontBroadcast)
     if(GetClientTeam(attacker) != SURVIVOR || IsFakeClient(attacker))
         return Plugin_Continue;
 
-    char mode[16];
-    GetConVarString(FindConVar("mp_gamemode"), mode, sizeof(mode));
-    if(StrEqual(mode, "versus"))
+    if(g_bIsProhibidedGamemode)
         return Plugin_Continue;
     
     char weapon[64];
@@ -824,6 +850,9 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 
 public void ChangeMode(int client)
 {
+    if(g_bIsProhibidedGamemode)
+        return;
+
     Handle menu = CreateMenu(ChangeModeMenu);
     SetMenuTitle(menu, "%t", "sc menu title");
 
