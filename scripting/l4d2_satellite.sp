@@ -1528,7 +1528,7 @@ public void PushAway(float tracePosition[3], float force, float radius, float du
     int push = CreateEntityByName("point_push");
     DispatchKeyValueFloat (push, "magnitude", force);
     DispatchKeyValueFloat (push, "radius", radius);
-    SetVariantString("spawnflags 24");
+    SetVariantString("spawnflags 8");
     AcceptEntityInput(push, "AddOutput");
     DispatchSpawn(push);
     TeleportEntity(push, tracePosition, NULL_VECTOR, NULL_VECTOR);
