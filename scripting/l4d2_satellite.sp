@@ -1757,7 +1757,7 @@ public Action DisplayInstructorHint(Handle  timer, any client)
     DispatchKeyValue(entity, "hint_icon_onscreen", "use_binding");
 
 
-    char infoText[16];
+    char infoText[64];
     Format(infoText, sizeof(infoText), "%t", "sc info change ammo type");
 
     DispatchKeyValue(entity, "hint_caption", infoText);
