@@ -1044,9 +1044,6 @@ public void Judgement(int client, float tracePos[3])
 
         if(!(GetVectorDistance(pos, tracePos) < getSatelliteRadius(ammoType)))
             continue;
-        
-        if (!satelliteHasFriendlyFire(ammoType) && i != client)
-            continue;
 
         DamageEffect(client, i, getSatelliteDamage(ammoType));
     }
