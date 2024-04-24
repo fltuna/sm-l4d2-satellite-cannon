@@ -521,8 +521,8 @@ public void OnPluginStart() {
     g_ssSatelliteSettings[AMMO_TYPE_MEDICAL_INJECTION].cvars.burstDelay =        CreateConVar("sm_satellite_ammo_medical_injection_burst_delay",       "1.0",      "Launching delay of this cannon. this value will only used when sm_satellite_burst_delay_global is 0", FCVAR_NOTIFY);
     g_ssSatelliteSettings[AMMO_TYPE_MEDICAL_INJECTION].cvars.pushForce =         CreateConVar(DUMMY_CVAR_NAME,              "0",    DUMMY_CVAR_DESCRIPTION, FCVAR_DONTRECORD);
     g_ssSatelliteSettings[AMMO_TYPE_MEDICAL_INJECTION].cvars.ammoAbillity1 =     CreateConVar("sm_satellite_ammo_medical_injection_heal",              "20",    "How many hp healed per shot.", FCVAR_NOTIFY);
-    g_ssSatelliteSettings[AMMO_TYPE_MEDICAL_INJECTION].cvars.ammoAbillity2 =     CreateConVar(DUMMY_CVAR_NAME,              "0",    DUMMY_CVAR_DESCRIPTION, FCVAR_DONTRECORD);
-    g_ssSatelliteSettings[AMMO_TYPE_MEDICAL_INJECTION].cvars.hasFriendlyFire =   CreateConVar("sm_satellite_ammo_medical_injection_heal_everyone",            "0",        "0:Only shooter 1:Everyone", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+    g_ssSatelliteSettings[AMMO_TYPE_MEDICAL_INJECTION].cvars.ammoAbillity2 =     CreateConVar("sm_satellite_ammo_medical_injection_heal_everyone",            "0",        "0:Only shooter 1:Everyone", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+    g_ssSatelliteSettings[AMMO_TYPE_MEDICAL_INJECTION].cvars.hasFriendlyFire =   CreateConVar(DUMMY_CVAR_NAME,              "0",    DUMMY_CVAR_DESCRIPTION, FCVAR_DONTRECORD);
     g_ssSatelliteSettings[AMMO_TYPE_MEDICAL_INJECTION].cvars.addChangeHook(OnPluginSettingsUpdated);
     g_ssSatelliteSettings[AMMO_TYPE_MEDICAL_INJECTION].updateCache();
 
@@ -1331,7 +1331,7 @@ void castMedicalInjection(int client, float tracePos[3]) {
         getSatelliteBurstDelay(AMMO_TYPE_MEDICAL_INJECTION)/5);
     
     float pos[3];
-    if(g_ssSatelliteSettings[AMMO_TYPE_MEDICAL_INJECTION].values.hasFriendlyFire) {
+    if(RoundToFloor(g_ssSatelliteSettings[AMMO_TYPE_MEDICAL_INJECTION].values.ammoAbillity2) == 1) {
         for(int i = 1; i <= MaxClients; i++) {
             if(!IsClientConnected(i) || !IsClientInGame(i))
                 continue;
