@@ -770,7 +770,7 @@ public void ResetParameter()
 }
 
 void resetPlayerLastShotTime(int client) {
-    for(int i = 0; i <= SATELLITE_AMMO_TYPE_COUNT; i++) {
+    for(int i = 0; i <= SATELLITE_AMMO_TYPE_COUNT-1; i++) {
         if(i == AMMO_TYPE_ALL || i == AMMO_TYPE_IDLE)
             continue;
 
