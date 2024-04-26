@@ -12,6 +12,12 @@
         "en"    "{1} ENERGY IS OUT"
         "jp"    "{1} のエネルギーが無くなりました"
     }
+    "sc ammo cooldown"
+    {
+        "#format" "{1:s},{2:.1f}"
+        "en"    "{1} IS RECHARGING. {2} SECONDS LEFT"
+        "jp"    "{1} は{2}秒後に再度使用できます"
+    }
 
     "sc ammo name blizzard"
     {

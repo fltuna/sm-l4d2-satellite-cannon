@@ -90,6 +90,19 @@ enum {
     EXPLOSION_TYPE_EXPLODE,
 }
 
+// For checkSatelliteCanShoot() return value
+enum {
+    ST_AMMO_INVALID = (1 << 0),
+    ST_AMMO_EMPTY = (1 << 1),
+    ST_AMMO_DISABLED = (1 << 2),
+    ST_IN_COOLDOWN = (1 << 3)
+}
+
+// Cooldown type
+enum {
+    CDTYPE_AFTER_SHOT,
+    CDTYPE_AFTER_DETONATE
+}
 
 enum struct SatelliteSettingsCvars {
     ConVar enabled;
@@ -343,7 +356,7 @@ enum struct SatelliteAmmo {
 enum struct SatellitePlayer {
     int currentAmmoType;
     int lastAmmoType;
-    bool isInCooldown;
+    float lastShotTime[SATELLITE_AMMO_TYPE_COUNT];
     bool isMoveBlocked;
     bool isActionBlocked;
     bool selfInjury;
@@ -659,6 +672,7 @@ void initPlayersAmmo() {
             SatelliteAmmo newAmmo;
             g_spSatellitePlayersAmmo[i][ammo] = newAmmo;
             g_spSatellitePlayersAmmo[i][ammo].isInfinityAmmo = false;
+            g_spSatellitePlayers[i].lastShotTime[ammo] = GetGameTime();
         }
         resetPlayerAmmo(i, AMMO_TYPE_ALL);
     }
@@ -749,6 +763,19 @@ public void ResetParameter()
 {
     for(int j = 0; j < MAXPLAYERS+1; j++)
         g_spSatellitePlayers[j].isActionBlocked = false;
+    
+    for(int i = 1; i <= MaxClients; i++) {
+        resetPlayerLastShotTime(i);
+    }
+}
+
+void resetPlayerLastShotTime(int client) {
+    for(int i = 0; i <= SATELLITE_AMMO_TYPE_COUNT; i++) {
+        if(i == AMMO_TYPE_ALL || i == AMMO_TYPE_IDLE)
+            continue;
+
+        g_spSatellitePlayers[client].lastShotTime[i] == GetGameTime();
+    }
 }
 
 /******************************************************
@@ -775,20 +802,23 @@ public Action onWeaponFired(Handle event, const char[] name, bool dontBroadcast)
     if(!StrEqual(weapon, "pistol_magnum"))
         return Plugin_Continue;
     
-    if(!g_ssSatelliteSettings[g_spSatellitePlayers[attacker].currentAmmoType].values.enabled) {
-        g_spSatellitePlayers[attacker].currentAmmoType = AMMO_TYPE_IDLE;
+    int currentAmmoType = g_spSatellitePlayers[attacker].currentAmmoType;
+
+    if(!g_ssSatelliteSettings[currentAmmoType].values.enabled) {
+        currentAmmoType = AMMO_TYPE_IDLE;
         return Plugin_Continue;
     }
 
-    if(g_spSatellitePlayers[attacker].currentAmmoType == AMMO_TYPE_ALL || g_spSatellitePlayers[attacker].currentAmmoType == AMMO_TYPE_IDLE)
+    if(currentAmmoType == AMMO_TYPE_ALL || currentAmmoType == AMMO_TYPE_IDLE)
         return Plugin_Continue;
 
-    if(!checkSatelliteCanShoot(attacker)) {
-        warnEmptyAmmo(attacker, g_spSatellitePlayers[attacker].currentAmmoType);
+    if(checkSatelliteCanShoot(attacker) & ST_IN_COOLDOWN) {
+        warnCooldown(attacker, currentAmmoType);
         return Plugin_Continue;
     }
 
-    g_spSatellitePlayers[attacker].lastAmmoType = g_spSatellitePlayers[attacker].currentAmmoType;
+    g_spSatellitePlayers[attacker].lastAmmoType = currentAmmoType;
+    g_spSatellitePlayers[attacker].lastShotTime[currentAmmoType] = GetGameTime();
 
     /* Emit sound */
     int soundNo = GetRandomInt(1, 9);
@@ -928,7 +958,7 @@ public int ChangeModeMenu(Handle menu, MenuAction action, int client, int itemNu
         g_spSatellitePlayers[client].currentAmmoType = ammoType;
         printAmmoTypeChangeMessage(client, ammoType);
 
-        if(!checkSatelliteCanShoot(client) && g_spSatellitePlayers[client].currentAmmoType != AMMO_TYPE_IDLE) {
+        if(checkSatelliteCanShoot(client) & ST_AMMO_EMPTY && g_spSatellitePlayers[client].currentAmmoType != AMMO_TYPE_IDLE) {
             warnEmptyAmmo(client, g_spSatellitePlayers[client].currentAmmoType);
             EmitSoundToClient(client, SOUND_NEGATIVE);
             g_spSatellitePlayers[client].currentAmmoType = AMMO_TYPE_IDLE;
@@ -1482,20 +1512,26 @@ public void CreateSparkEffect(float tracePosition[3], int size, int length)
 *    Other functions
 *******************************************************/
 
-bool checkSatelliteCanShoot(int client) {
+int checkSatelliteCanShoot(int client) {
+    int satelliteStatus = 0;
 
     int ammoType = g_spSatellitePlayers[client].currentAmmoType;
 
-    if(ammoType == AMMO_TYPE_ALL || ammoType == AMMO_TYPE_IDLE)
-        return false;
+    if(ammoType == AMMO_TYPE_ALL || ammoType == AMMO_TYPE_IDLE || ammoType > SATELLITE_AMMO_TYPE_COUNT)
+        satelliteStatus |= ST_AMMO_INVALID;
+
+    float lastShotTime = g_spSatellitePlayers[client].lastShotTime[ammoType];
+    float satelliteCooldown = getSatelliteCooldown(ammoType, CDTYPE_AFTER_SHOT);
+    if(satelliteCooldown > 0.0 && GetGameTime() - lastShotTime < satelliteCooldown)
+        satelliteStatus |= ST_IN_COOLDOWN;
     
     if(!isSatelliteEnabled(ammoType))
-        return false;
+        satelliteStatus |= ST_AMMO_DISABLED;
     
     if(g_spSatellitePlayersAmmo[client][ammoType].isAmmoEmpty())
-        return false;
+        satelliteStatus |= ST_AMMO_EMPTY;
 
-    return true;
+    return satelliteStatus;
 }
 
 void getAmmoName(char[] buffer, int bufferSize, int ammoType, int client) {
@@ -1547,6 +1583,15 @@ void warnEmptyAmmo(int client, int ammoType) {
     g_spSatellitePlayers[client].currentAmmoType = AMMO_TYPE_IDLE;
 }
 
+
+void warnCooldown(int client, int ammoType) {
+    char ammoName[48];
+    getAmmoName(ammoName, sizeof(ammoName), ammoType, client);
+
+    PrintHintText(client, "%t", "sc ammo cooldown", ammoName, g_spSatellitePlayers[client].lastShotTime[ammoType] - GetGameTime() + getSatelliteCooldown(ammoType, CDTYPE_AFTER_SHOT));
+    g_spSatellitePlayers[client].currentAmmoType = AMMO_TYPE_IDLE;
+}
+
 bool isSatelliteEnabled(int ammoType) {
     return g_ssSatelliteSettings[ammoType].values.enabled;
 }
@@ -1581,7 +1626,10 @@ stock float getSatelliteDamage(int ammoType) {
     return g_ssSatelliteSettings[ammoType].values.damage;
 }
 
-stock float getSatelliteCooldown(int ammoType) {
+stock float getSatelliteCooldown(int ammoType, int cooldownType) {
+    if(cooldownType == CDTYPE_AFTER_SHOT)
+        return g_ssSatelliteSettings[ammoType].values.cooldown + 2.0;
+
     return g_ssSatelliteSettings[ammoType].values.cooldown;
 }
 
