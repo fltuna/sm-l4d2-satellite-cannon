@@ -792,14 +792,11 @@ public Action onWeaponFired(Handle event, const char[] name, bool dontBroadcast)
     if(GetClientTeam(attacker) != SURVIVOR || IsFakeClient(attacker))
         return Plugin_Continue;
 
-    if(g_bIsProhibidedGamemode)
+    int weaponID = GetEventInt(event, "weaponid", -1);
+    if(weaponID != 32)
         return Plugin_Continue;
-    
-    char weapon[64];
-    GetEventString(event, "weapon", weapon, sizeof(weapon));
-    
-    /* Admin only? */
-    if(!StrEqual(weapon, "pistol_magnum"))
+
+    if(g_bIsProhibidedGamemode)
         return Plugin_Continue;
     
     int currentAmmoType = g_spSatellitePlayers[attacker].currentAmmoType;
@@ -903,7 +900,7 @@ public Action OnPlayerRunCmd(int client, int &buttons)
             char weapon[64];
             GetClientWeapon(client, weapon, 64);
             
-            if (StrEqual(weapon, "weapon_pistol_magnum"))
+            if (weapon[7] == 'p' && weapon[14] == 'm' && StrEqual(weapon, "weapon_pistol_magnum"))
             {
                 /* Mode change menu */
                 ChangeMode(client);
