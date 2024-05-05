@@ -616,8 +616,6 @@ public Action onTakeDamage(int victim, int &attacker, int &inflictor, float &dam
 }
 
 public void OnMapStart() {
-    resetAllPlayersAmmo();
-
     PrecacheModel(ENTITY_PROPANE, true);
     PrecacheModel(ENTITY_GASCAN, true);
 
@@ -658,6 +656,7 @@ public void OnMapStart() {
         if(getSatelliteUsageResetTiming(i) & RT_MAP_START) {
             for(int client = 1; client <= MaxClients; client++) {
                 resetPlayerAmmo(client, i);
+                resetPlayerLastShotTime(client);
             }
         }
     }
@@ -678,11 +677,12 @@ void initPlayersAmmo() {
     }
 }
 
-void resetAllPlayersAmmo() {
-    for(int i = 1; i <= MaxClients; i++) {
-        resetPlayerAmmo(i, AMMO_TYPE_ALL);
-    }
-}
+// void resetAllPlayersAmmo(int resetTiming) {
+//     for(int i = 1; i <= MaxClients; i++) {
+//         resetPlayerAmmo(i, AMMO_TYPE_ALL);
+//         resetPlayerLastShotTime(i);
+//     }
+// }
 
 /**
  * Reset the player's satellite cannon ammo.
@@ -738,6 +738,7 @@ public Action onPlayerDeath(Handle event, const char[] name, bool dontBroadcast)
         if(getSatelliteUsageResetTiming(i) & RT_ON_DEATH) {
             int client = GetClientOfUserId(GetEventInt(event, "userid"));
             resetPlayerAmmo(client, i);
+            resetPlayerLastShotTime(client);
         }
     }
     return Plugin_Continue;
@@ -752,6 +753,7 @@ public Action onRoundStart(Handle event, const char[] name, bool dontBroadcast)
         if(getSatelliteUsageResetTiming(i) & RT_ROUND_START) {
             for(int client = 1; client <= MaxClients; client++) {
                 resetPlayerAmmo(client, i);
+                resetPlayerLastShotTime(client);
             }
         }
     }
