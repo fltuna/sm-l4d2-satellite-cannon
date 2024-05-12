@@ -598,7 +598,7 @@ void checkGamemodeIsProhibided() {
 
 public Action onTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
 {
-    if(damage < 0.1)
+    if(damage < 0.1 || GetClientTeam(victim) != SURVIVOR)
         return Plugin_Continue;
 
     if ((damagetype & DMG_BLAST || damagetype & DMG_BLAST_SURFACE || damagetype & DMG_AIRBOAT || damagetype & DMG_PLASMA))
