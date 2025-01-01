@@ -776,7 +776,7 @@ void resetPlayerLastShotTime(int client) {
         if(i == AMMO_TYPE_ALL || i == AMMO_TYPE_IDLE)
             continue;
 
-        g_spSatellitePlayers[client].lastShotTime[i] == GetGameTime();
+        g_spSatellitePlayers[client].lastShotTime[i] = GetGameTime();
     }
 }
 
